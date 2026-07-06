@@ -16,6 +16,10 @@ require __DIR__ . '/includes/header.php';
     <div class="card">
         <h1>Connexion</h1>
         <p class="subtitle">Accedez a votre espace client, livreur, commercant ou administrateur.</p>
+        <p style="font-size:0.75rem;color:#888;">
+            Version de la page : <strong>DIAG-3</strong> &middot;
+            <span id="js-check" style="color:#dc2626;">JavaScript INACTIF</span>
+        </p>
         <div id="alert-zone"></div>
         <form id="login-form">
             <div class="form-group">
@@ -44,6 +48,12 @@ require __DIR__ . '/includes/header.php';
     }
 
     function attacher() {
+        var check = document.getElementById('js-check');
+        if (check) {
+            check.textContent = 'JavaScript actif';
+            check.style.color = '#16a34a';
+        }
+
         var form = document.getElementById('login-form');
         if (!form) {
             return;
