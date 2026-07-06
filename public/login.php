@@ -31,23 +31,70 @@ require __DIR__ . '/includes/header.php';
     </div>
 </div>
 <script>
-document.getElementById('login-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const alertZone = document.getElementById('alert-zone');
-    alertZone.innerHTML = '';
-
-    const data = {
-        email: document.getElementById('email').value.trim(),
-        password: document.getElementById('password').value,
-    };
-
-    try {
-        const res = await Api.post('/api/auth/login.php', data);
-        const chemins = { client: '/client/dashboard.php', livreur: '/livreur/dashboard.php', commercant: '/commercant/dashboard.php', admin: '/admin/dashboard.php' };
-        window.location.href = chemins[res.data.role] || '/';
-    } catch (err) {
-        alertZone.innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
+// Version autonome : ne depend d'aucun fichier JS externe, pour fonctionner
+// meme si /assets/js/*.js ne se charge pas (mauvais document root, etc.).
+(function () {
+    function afficherErreur(message) {
+        var zone = document.getElementById('alert-zone');
+        var div = document.createElement('div');
+        div.className = 'alert alert-erreur';
+        div.textContent = message;
+        zone.innerHTML = '';
+        zone.appendChild(div);
     }
-});
+
+    function attacher() {
+        var form = document.getElementById('login-form');
+        if (!form) {
+            return;
+        }
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            var data = {
+                email: document.getElementById('email').value.trim(),
+                password: document.getElementById('password').value,
+            };
+
+            fetch('/api/auth/login.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify(data),
+            }).then(function (res) {
+                return res.text().then(function (texte) {
+                    var body;
+                    try {
+                        body = JSON.parse(texte);
+                    } catch (err) {
+                        // La reponse n'est pas du JSON : on affiche un extrait pour diagnostic.
+                        throw new Error('Reponse inattendue du serveur (HTTP ' + res.status + '). Verifiez la connexion a la base de donnees. Debut de la reponse : ' + texte.slice(0, 200));
+                    }
+                    if (!res.ok || !body.success) {
+                        throw new Error(body.message || ('Erreur HTTP ' + res.status));
+                    }
+                    return body;
+                });
+            }).then(function (body) {
+                var chemins = {
+                    client: '/client/dashboard.php',
+                    livreur: '/livreur/dashboard.php',
+                    commercant: '/commercant/dashboard.php',
+                    admin: '/admin/dashboard.php',
+                };
+                window.location.href = chemins[body.data.role] || '/';
+            }).catch(function (err) {
+                console.error('Erreur de connexion :', err);
+                afficherErreur(err.message);
+            });
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', attacher);
+    } else {
+        attacher();
+    }
+})();
 </script>
 <?php require __DIR__ . '/includes/footer.php'; ?>
