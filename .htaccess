@@ -1,6 +1,16 @@
-# Ce fichier protege le depot si le document root du serveur pointe par erreur
-# sur la racine du projet au lieu du dossier /public.
-# Configuration correcte a faire sur l'hebergement : document root = /public
+# Ce fichier ne protege que les dossiers sensibles si le document root de
+# l'hebergement pointe par erreur sur la racine du projet au lieu du dossier
+# /public. Configuration correcte a faire dans cPanel/o2switch :
+# faire pointer le document root du domaine (ou sous-domaine) vers /public.
+#
+# Avec un document root correctement configure sur /public, ce fichier n'est
+# jamais lu par Apache et n'a aucun effet.
 
 Options -Indexes
-Require all denied
+
+RewriteEngine On
+RewriteRule ^(config|includes|sql|storage)(/|$) - [F,L]
+
+<FilesMatch "\.(env|sql|log|md)$">
+    Require all denied
+</FilesMatch>
