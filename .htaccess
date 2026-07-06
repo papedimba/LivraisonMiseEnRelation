@@ -1,0 +1,6 @@
+# Ce fichier protege le depot si le document root du serveur pointe par erreur
+# sur la racine du projet au lieu du dossier /public.
+# Configuration correcte a faire sur l'hebergement : document root = /public
+
+Options -Indexes
+Require all denied
