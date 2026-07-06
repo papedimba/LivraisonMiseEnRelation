@@ -1,7 +1,7 @@
 /**
  * Comportement partage : cloche de notifications, formatage.
  */
-(function () {
+document.addEventListener('DOMContentLoaded', function () {
     const bell = document.getElementById('notif-bell');
     const panel = document.getElementById('notif-panel');
     const countBadge = document.getElementById('notif-count');
@@ -56,7 +56,7 @@
 
     chargerNotifications();
     setInterval(chargerNotifications, 30000);
-})();
+});
 
 function escapeHtml(str) {
     const div = document.createElement('div');

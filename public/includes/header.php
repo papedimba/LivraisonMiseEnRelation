@@ -10,6 +10,8 @@ $nomComplet = $_SESSION['nom_complet'] ?? '';
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= htmlspecialchars($pageTitle ?? APP_NOM) ?> - <?= htmlspecialchars(APP_NOM) ?></title>
 <link rel="stylesheet" href="/assets/css/style.css">
+<script src="/assets/js/api.js"></script>
+<script src="/assets/js/app.js"></script>
 </head>
 <body>
 <header class="topbar">
