@@ -21,6 +21,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/dispatch.php';
 
 $enCli = PHP_SAPI === 'cli';
 if (!$enCli) {
@@ -40,7 +41,7 @@ $relanceMin = (int) parametre($db, 'relance_commande_minutes', '3');
 $annulMin = (int) parametre($db, 'annulation_auto_minutes', '20');
 $reattribMin = (int) parametre($db, 'reattribution_acceptee_minutes', '10');
 
-$resume = ['relancees' => 0, 'reattribuees' => 0, 'annulees' => 0];
+$resume = ['relancees' => 0, 'reattribuees' => 0, 'annulees' => 0, 'dispatchees' => 0];
 
 // ---------------------------------------------------------------------------
 // 1) REATTRIBUTION : commandes acceptees mais bloquees (livreur inactif).
@@ -94,40 +95,50 @@ foreach ($stmt->fetchAll() as $c) {
 }
 
 // ---------------------------------------------------------------------------
-// 3) RELANCE : re-notifier les livreurs en ligne pour les commandes en attente.
+// 3) DISPATCH : faire avancer les offres (expirees -> livreur suivant) pour
+//    toutes les commandes en attente encore dans la fenetre.
 // ---------------------------------------------------------------------------
 $stmt = $db->prepare(
-    "SELECT id, reference
-     FROM commandes
-     WHERE statut = 'en_attente'
-       AND created_at >= (NOW() - INTERVAL :annul MINUTE)
-       AND (relance_at IS NULL OR relance_at < (NOW() - INTERVAL :relance MINUTE))"
+    "SELECT id, reference FROM commandes
+     WHERE statut = 'en_attente' AND created_at >= (NOW() - INTERVAL :annul MINUTE)"
 );
 $stmt->bindValue(':annul', $annulMin, PDO::PARAM_INT);
-$stmt->bindValue(':relance', $relanceMin, PDO::PARAM_INT);
 $stmt->execute();
-$commandesARelancer = $stmt->fetchAll();
+$enAttente = $stmt->fetchAll();
 
-if ($commandesARelancer) {
-    $livreurs = $db->query(
-        "SELECT ld.user_id FROM livreur_details ld
-         WHERE ld.disponibilite = 'en_ligne' AND ld.statut_validation = 'valide'"
-    )->fetchAll();
-
-    foreach ($commandesARelancer as $c) {
-        foreach ($livreurs as $l) {
-            creer_notification($db, (int) $l['user_id'], 'Course disponible',
-                "Une course ({$c['reference']}) attend un livreur.", 'commande', '/livreur/dashboard.php');
+foreach ($enAttente as $c) {
+    $etat = avancer_dispatch($db, (int) $c['id']);
+    if ($etat === 'dispatchee') {
+        $resume['dispatchees']++;
+    } elseif ($etat === 'aucun_livreur') {
+        // Repli : aucune position/livreur eligible -> diffusion large, throttlee.
+        $stmt2 = $db->prepare(
+            "SELECT id FROM commandes WHERE id = :id
+             AND (relance_at IS NULL OR relance_at < (NOW() - INTERVAL :relance MINUTE))"
+        );
+        $stmt2->bindValue(':id', (int) $c['id'], PDO::PARAM_INT);
+        $stmt2->bindValue(':relance', $relanceMin, PDO::PARAM_INT);
+        $stmt2->execute();
+        if ($stmt2->fetch()) {
+            $livreurs = $db->query(
+                "SELECT ld.user_id FROM livreur_details ld
+                 WHERE ld.disponibilite = 'en_ligne' AND ld.statut_validation = 'valide'"
+            )->fetchAll();
+            foreach ($livreurs as $l) {
+                creer_notification($db, (int) $l['user_id'], 'Course disponible',
+                    "Une course ({$c['reference']}) attend un livreur.", 'commande', '/livreur/dashboard.php');
+            }
+            $db->prepare('UPDATE commandes SET relance_at = NOW(), nombre_relances = nombre_relances + 1 WHERE id = :id')
+                ->execute(['id' => $c['id']]);
+            $resume['relancees']++;
         }
-        $db->prepare('UPDATE commandes SET relance_at = NOW(), nombre_relances = nombre_relances + 1 WHERE id = :id')
-            ->execute(['id' => $c['id']]);
-        $resume['relancees']++;
     }
 }
 
 echo sprintf(
-    "[%s] relancees=%d reattribuees=%d annulees=%d\n",
+    "[%s] dispatchees=%d relancees=%d reattribuees=%d annulees=%d\n",
     date('Y-m-d H:i:s'),
+    $resume['dispatchees'],
     $resume['relancees'],
     $resume['reattribuees'],
     $resume['annulees']

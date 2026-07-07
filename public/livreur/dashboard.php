@@ -21,9 +21,12 @@ require __DIR__ . '/../includes/header.php';
 
 <div id="alert-zone"></div>
 
+<div id="offre-dispatch" class="card hidden mb-1" style="border:2px solid var(--couleur-primaire);"></div>
+
 <div id="course-active" class="card hidden mb-1"></div>
 
 <div class="card">
+    <h2 style="margin-top:0;">Autres courses disponibles</h2>
     <div class="table-wrap">
         <table>
             <thead>
@@ -177,8 +180,57 @@ async function chargerCommandes() {
     }
 }
 
+// --- Offre de dispatch (course proposee au livreur le plus proche) ----------
+let offreCourante = null;
+
+async function chargerOffre() {
+    const zone = document.getElementById('offre-dispatch');
+    try {
+        const res = await Api.get('/api/livreur/offer_get.php');
+        const o = res.data.offre;
+        if (!o) {
+            zone.classList.add('hidden');
+            offreCourante = null;
+            return;
+        }
+        offreCourante = o;
+        const sec = res.data.secondes_restantes;
+        const retrait = o.nom_boutique ? escapeHtml(o.nom_boutique) : escapeHtml(o.adresse_depart);
+        zone.classList.remove('hidden');
+        zone.innerHTML = `
+            <h2 style="margin-top:0;">🛵 Course proposee <span style="color:var(--couleur-primaire)">(${sec}s)</span></h2>
+            <p><strong>${escapeHtml(o.reference)}</strong> &middot; ${escapeHtml(o.type_nom)} &middot; a ${o.distance_km} km de vous</p>
+            <p>Retrait : ${retrait} &rarr; ${escapeHtml(o.adresse_arrivee)}</p>
+            <p><strong>Montant :</strong> ${formatMontant(o.montant_estime)} (${escapeHtml(o.mode_paiement)})</p>
+            <div class="flex">
+                <button id="btn-accepter-offre" class="btn">Accepter</button>
+                <button id="btn-refuser-offre" class="btn btn-ghost">Refuser</button>
+            </div>
+        `;
+        document.getElementById('btn-accepter-offre').addEventListener('click', () => repondreOffre('accepter'));
+        document.getElementById('btn-refuser-offre').addEventListener('click', () => repondreOffre('refuser'));
+    } catch (err) {
+        zone.classList.add('hidden');
+    }
+}
+
+async function repondreOffre(decision) {
+    if (!offreCourante) { return; }
+    try {
+        await Api.post('/api/livreur/offer_respond.php', { offre_id: offreCourante.offre_id, decision: decision });
+        offreCourante = null;
+        chargerOffre();
+        chargerCourseActive();
+        chargerCommandes();
+    } catch (err) {
+        alertZone.innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
+        chargerOffre();
+    }
+}
+
+chargerOffre();
 chargerCourseActive();
 chargerCommandes();
-setInterval(() => { chargerCourseActive(); chargerCommandes(); }, 10000);
+setInterval(() => { chargerOffre(); chargerCourseActive(); chargerCommandes(); }, 5000);
 </script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>

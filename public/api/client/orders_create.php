@@ -213,6 +213,15 @@ try {
     Response::error('Erreur lors de la creation de la commande : ' . $e->getMessage(), 422);
 }
 
+// Dispatch automatique : proposer la course au livreur en ligne le plus proche.
+// Best-effort : n'affecte jamais la reussite de la creation de commande.
+try {
+    require_once __DIR__ . '/../../../includes/dispatch.php';
+    dispatcher_commande($db, $commandeId);
+} catch (Throwable $e) {
+    error_log('Dispatch error: ' . $e->getMessage());
+}
+
 Response::created([
     'commande_id' => $commandeId,
     'reference' => $reference,

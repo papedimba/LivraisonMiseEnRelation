@@ -334,6 +334,23 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ----------------------------------------------------------------------------
+-- Offres de dispatch (attribution automatique par proximite)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS dispatch_offres (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    commande_id INT UNSIGNED NOT NULL,
+    livreur_id INT UNSIGNED NOT NULL,
+    distance_km DECIMAL(8,2) DEFAULT NULL,
+    statut ENUM('en_attente','acceptee','refusee','expiree') NOT NULL DEFAULT 'en_attente',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at DATETIME NOT NULL,
+    CONSTRAINT fk_offre_commande FOREIGN KEY (commande_id) REFERENCES commandes(id) ON DELETE CASCADE,
+    CONSTRAINT fk_offre_livreur FOREIGN KEY (livreur_id) REFERENCES users(id) ON DELETE CASCADE,
+    KEY idx_offre_livreur (livreur_id, statut),
+    KEY idx_offre_commande (commande_id, statut)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------------------------------------------------------
 -- Codes promo
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS codes_promo (
@@ -409,7 +426,8 @@ INSERT INTO parametres (cle, valeur) VALUES
 ('ville_defaut', 'Bouake'),
 ('relance_commande_minutes', '3'),
 ('annulation_auto_minutes', '20'),
-('reattribution_acceptee_minutes', '10');
+('reattribution_acceptee_minutes', '10'),
+('dispatch_offre_secondes', '45');
 
 -- Compte admin par defaut (mot de passe: ChangeMoi123! - a changer immediatement)
 -- Hash genere avec password_hash('ChangeMoi123!', PASSWORD_BCRYPT)

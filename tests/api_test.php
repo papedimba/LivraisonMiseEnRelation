@@ -105,6 +105,25 @@ function tests_api(string $base): void
     $r = $client->post('/api/client/promo_check.php', ['code' => $codePromo, 'montant' => 500]);
     t_eq(422, $r['code'], 'code promo sous le montant minimum rejete');
 
+    // -- Dispatch par proximite ------------------------------------------------
+    t_section('Dispatch automatique par proximite');
+    // Le livreur (deja en ligne apres sa livraison) enregistre sa position.
+    $livreur->post('/api/livreur/update_position.php', ['latitude' => 7.6905, 'longitude' => -5.0305]);
+    $r = $client->post('/api/client/orders_create.php', [
+        'type_livraison_id' => 1, 'adresse_depart' => 'R', 'lat_depart' => 7.69, 'lng_depart' => -5.03,
+        'adresse_arrivee' => 'D', 'lat_arrivee' => 7.70, 'lng_arrivee' => -5.04, 'mode_paiement' => 'especes',
+    ]);
+    $cmdDispatch = $r['body']['data']['commande_id'] ?? 0;
+
+    $r = $livreur->get('/api/livreur/offer_get.php');
+    $offreId = $r['body']['data']['offre']['offre_id'] ?? 0;
+    t_ok($offreId > 0, 'une offre est proposee au livreur le plus proche');
+    t_eq($cmdDispatch, $r['body']['data']['offre']['commande_id'] ?? -1, 'l\'offre concerne la bonne commande');
+
+    $r = $livreur->post('/api/livreur/offer_respond.php', ['offre_id' => $offreId, 'decision' => 'accepter']);
+    t_eq(200, $r['code'], 'acceptation de l\'offre de dispatch');
+    t_eq($cmdDispatch, $r['body']['data']['commande_id'] ?? -1, 'commande attribuee via le dispatch');
+
     // -- Parametres admin (regression : placeholder reutilise) -----------------
     t_section('Parametres admin');
     $r = $admin->post('/api/admin/settings.php', ['commission_taux_defaut' => '18']);
