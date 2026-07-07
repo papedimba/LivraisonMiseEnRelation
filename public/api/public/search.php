@@ -14,13 +14,15 @@ $categorie = clean_str($_GET['categorie'] ?? '');
 $db = Database::getConnection();
 
 if ($q !== '') {
+    // Le meme placeholder ne peut pas etre reutilise plusieurs fois avec des
+    // requetes preparees non emulees : on utilise deux parametres distincts.
     $sql = "SELECT p.*, cd.nom_boutique, cd.categorie AS boutique_categorie,
-                   MATCH(p.nom, p.description) AGAINST (:q IN NATURAL LANGUAGE MODE) AS pertinence
+                   MATCH(p.nom, p.description) AGAINST (:q_select IN NATURAL LANGUAGE MODE) AS pertinence
             FROM produits p
             JOIN commercant_details cd ON cd.user_id = p.commercant_id
             WHERE p.disponible = 1 AND cd.statut_validation = 'valide'
-              AND MATCH(p.nom, p.description) AGAINST (:q IN NATURAL LANGUAGE MODE)";
-    $params = ['q' => $q];
+              AND MATCH(p.nom, p.description) AGAINST (:q_where IN NATURAL LANGUAGE MODE)";
+    $params = ['q_select' => $q, 'q_where' => $q];
 
     if ($categorie !== '') {
         $sql .= ' AND cd.categorie = :categorie';
@@ -38,10 +40,10 @@ if ($q !== '') {
                     FROM produits p
                     JOIN commercant_details cd ON cd.user_id = p.commercant_id
                     WHERE p.disponible = 1 AND cd.statut_validation = 'valide'
-                      AND (p.nom LIKE :like OR p.description LIKE :like)
+                      AND (p.nom LIKE :like_nom OR p.description LIKE :like_desc)
                     LIMIT 50";
         $stmt = $db->prepare($sqlLike);
-        $stmt->execute(['like' => '%' . $q . '%']);
+        $stmt->execute(['like_nom' => '%' . $q . '%', 'like_desc' => '%' . $q . '%']);
         $produits = $stmt->fetchAll();
     }
 } else {

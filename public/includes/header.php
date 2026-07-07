@@ -22,6 +22,7 @@ $nomComplet = $_SESSION['nom_complet'] ?? '';
             <?php if ($role === 'client'): ?>
                 <a href="/client/dashboard.php">Accueil</a>
                 <a href="/client/new-order.php">Nouvelle commande</a>
+                <a href="/client/shops.php">Boutiques</a>
                 <a href="/client/history.php">Historique</a>
                 <a href="/client/support.php">Assistance</a>
             <?php elseif ($role === 'livreur'): ?>

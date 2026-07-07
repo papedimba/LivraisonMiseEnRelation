@@ -8,10 +8,14 @@ require __DIR__ . '/../includes/header.php';
 <h1>Bonjour <?= htmlspecialchars(explode(' ', $_SESSION['nom_complet'])[0]) ?> 👋</h1>
 <p class="subtitle">Que souhaitez-vous faire aujourd'hui ?</p>
 
-<div class="grid grid-3 mb-1">
+<div class="grid grid-4 mb-1">
     <a class="card" href="/client/new-order.php">
         <h2>➕ Nouvelle commande</h2>
         <p class="text-muted">Repas, courses, colis, medicaments, documents...</p>
+    </a>
+    <a class="card" href="/client/shops.php">
+        <h2>🛍️ Boutiques</h2>
+        <p class="text-muted">Commandez aupres des commerces partenaires.</p>
     </a>
     <a class="card" href="/client/history.php">
         <h2>🕒 Historique</h2>
