@@ -10,7 +10,21 @@ et la livraison de repas, courses, medicaments, colis, documents, fleurs, cadeau
 - **Frontend** : HTML / CSS / JavaScript vanilla (aucun framework frontend)
 - **IA** : API Anthropic Claude (`claude-sonnet-4-20250514`) via curl PHP, pour l'assistant de support client
 - **Cartographie** : Leaflet + OpenStreetMap (CDN, aucune cle API requise)
+- **Suivi temps reel** : Server-Sent Events (SSE) pour pousser la position du livreur
+  et le statut de la commande au client (avec repli automatique sur du polling)
 - **Compatible** hebergement mutualise (cPanel, o2switch, etc.)
+
+### Note sur le suivi temps reel (SSE)
+
+La page de suivi client (`client/track.php`) ouvre une connexion SSE vers
+`api/client/track_stream.php`, qui pousse une mise a jour uniquement quand le
+statut ou la position du livreur change (rafraichissement serveur toutes les 3 s).
+Le flux libere le verrou de session (`session_write_close`) pour ne pas bloquer les
+autres requetes de l'utilisateur, se ferme automatiquement quand la commande est
+livree/annulee, et vit 5 minutes maximum avant que le navigateur ne se reconnecte
+tout seul. Chaque connexion SSE mobilise un worker PHP tant qu'elle est ouverte :
+sur un hebergement mutualise a faible nombre de workers, surveillez la charge si
+beaucoup de clients suivent une commande simultanement.
 
 ## Structure du projet
 

@@ -108,6 +108,38 @@ async function charger() {
     }
 }
 
+let sseSource = null;
+let pollingInterval = null;
+
+function demarrerSSE() {
+    if (typeof EventSource === 'undefined') {
+        // Repli : navigateurs sans support SSE -> polling classique toutes les 5 s.
+        charger();
+        pollingInterval = setInterval(charger, 5000);
+        return;
+    }
+
+    const url = '/api/client/track_stream.php?reference=' + encodeURIComponent(reference);
+    sseSource = new EventSource(url);
+
+    sseSource.addEventListener('update', (e) => {
+        try { renderDetails(JSON.parse(e.data).commande); } catch (err) {}
+    });
+
+    sseSource.addEventListener('final', (e) => {
+        try { renderDetails(JSON.parse(e.data).commande); } catch (err) {}
+        sseSource.close();
+    });
+
+    // A la fin de vie du flux (5 min), le serveur ferme : le navigateur se
+    // reconnecte automatiquement. Aucune action necessaire ici.
+
+    sseSource.onerror = () => {
+        // EventSource tente de se reconnecter tout seul. Si le flux est ferme
+        // definitivement (commande terminee), il ne se rouvrira pas.
+    };
+}
+
 document.getElementById('btn-envoyer-note').addEventListener('click', async () => {
     try {
         await Api.post('/api/client/rate.php', {
@@ -122,7 +154,7 @@ document.getElementById('btn-envoyer-note').addEventListener('click', async () =
 });
 
 initMap();
-charger();
-setInterval(charger, 8000);
+charger();       // premier affichage immediat
+demarrerSSE();   // puis mises a jour poussees par le serveur (SSE)
 </script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>
