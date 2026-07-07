@@ -44,7 +44,11 @@ if ($user['statut'] === 'suspendu') {
     Response::forbidden('Ce compte est suspendu. Contactez le support.');
 }
 
-if ($user['statut'] === 'en_attente') {
+// Les livreurs et commercants en attente peuvent se connecter afin de deposer
+// leurs documents et suivre l'etat de leur validation. Leur espace reste
+// restreint tant qu'ils ne sont pas valides. Les autres comptes en attente
+// (cas anormal pour un client) restent bloques.
+if ($user['statut'] === 'en_attente' && !in_array($user['role'], ['livreur', 'commercant'], true)) {
     Auth::enregistrerTentative($db, $user['id'], $email, false);
     Response::forbidden('Ce compte est en attente de validation par un administrateur.');
 }

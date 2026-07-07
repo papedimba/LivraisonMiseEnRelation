@@ -26,6 +26,7 @@ $nomComplet = $_SESSION['nom_complet'] ?? '';
                 <a href="/client/support.php">Assistance</a>
             <?php elseif ($role === 'livreur'): ?>
                 <a href="/livreur/dashboard.php">Courses disponibles</a>
+                <a href="/livreur/documents.php">Mes documents</a>
                 <a href="/livreur/history.php">Historique</a>
                 <a href="/livreur/earnings.php">Mes gains</a>
             <?php elseif ($role === 'commercant'): ?>
@@ -44,7 +45,7 @@ $nomComplet = $_SESSION['nom_complet'] ?? '';
         </nav>
         <div class="topbar-user">
             <button id="notif-bell" class="icon-btn" title="Notifications">🔔<span id="notif-count" class="badge hidden">0</span></button>
-            <span class="user-name"><?= htmlspecialchars($nomComplet) ?></span>
+            <a href="/account/password.php" class="user-name" title="Changer mon mot de passe"><?= htmlspecialchars($nomComplet) ?></a>
             <a href="/logout.php" class="btn btn-ghost btn-sm">Deconnexion</a>
         </div>
         <?php endif; ?>
