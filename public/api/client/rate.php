@@ -59,25 +59,27 @@ try {
     ]);
 
     if ($commande['livreur_id']) {
+        // Un meme placeholder ne peut pas etre reutilise (prepared non emule) :
+        // on passe deux parametres distincts.
         $stmt = $db->prepare(
             'UPDATE livreur_details
              SET note_moyenne = (
-                 SELECT ROUND(AVG(e.note), 2) FROM evaluations e WHERE e.livreur_id = :livreur_id
+                 SELECT ROUND(AVG(e.note), 2) FROM evaluations e WHERE e.livreur_id = :lid_sub
              )
-             WHERE user_id = :livreur_id'
+             WHERE user_id = :lid_where'
         );
-        $stmt->execute(['livreur_id' => $commande['livreur_id']]);
+        $stmt->execute(['lid_sub' => $commande['livreur_id'], 'lid_where' => $commande['livreur_id']]);
     }
 
     if ($commande['commercant_id']) {
         $stmt = $db->prepare(
             'UPDATE commercant_details
              SET note_moyenne = (
-                 SELECT ROUND(AVG(e.note), 2) FROM evaluations e WHERE e.commercant_id = :commercant_id
+                 SELECT ROUND(AVG(e.note), 2) FROM evaluations e WHERE e.commercant_id = :cid_sub
              )
-             WHERE user_id = :commercant_id'
+             WHERE user_id = :cid_where'
         );
-        $stmt->execute(['commercant_id' => $commande['commercant_id']]);
+        $stmt->execute(['cid_sub' => $commande['commercant_id'], 'cid_where' => $commande['commercant_id']]);
     }
 
     $db->commit();

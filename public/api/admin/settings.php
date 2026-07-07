@@ -18,10 +18,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             continue;
         }
         $stmt = $db->prepare(
-            'INSERT INTO parametres (cle, valeur) VALUES (:cle, :valeur)
-             ON DUPLICATE KEY UPDATE valeur = :valeur'
+            'INSERT INTO parametres (cle, valeur) VALUES (:cle, :valeur_ins)
+             ON DUPLICATE KEY UPDATE valeur = :valeur_upd'
         );
-        $stmt->execute(['cle' => $cle, 'valeur' => (string) $valeur]);
+        $stmt->execute(['cle' => $cle, 'valeur_ins' => (string) $valeur, 'valeur_upd' => (string) $valeur]);
     }
     Response::success([], 'Parametres mis a jour.');
 }

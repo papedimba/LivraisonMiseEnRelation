@@ -70,6 +70,26 @@ storage/        Fichiers uploades (pieces d'identite livreurs, logos boutiques, 
    - **Changez immediatement ce mot de passe** apres la premiere connexion via la page
      « Mon compte » (clic sur votre nom dans l'en-tete).
 
+## Tests automatises
+
+Une suite de tests sans dependance (ni Composer ni PHPUnit) est fournie dans `tests/` :
+
+- **Tests unitaires** (fonctions pures : distance, estimation de cout, validation,
+  signature VAPID) :
+  ```
+  php tests/run.php
+  ```
+- **Suite complete** (unitaires + integration API de bout en bout : inscription,
+  commande, acceptation, preuve de livraison, evaluation, codes promo, controle
+  d'acces). Le script cree une base de test, demarre un serveur local, execute les
+  tests puis nettoie :
+  ```
+  TEST_DB_USER=root TEST_DB_PASS=motdepasse bash tests/run.sh
+  ```
+  Variables surchargeables : `TEST_DB_HOST`, `TEST_DB_USER`, `TEST_DB_PASS`,
+  `TEST_DB_NAME`, `TEST_PORT`. Le code de sortie est non nul si un test echoue
+  (utilisable en integration continue).
+
 ## Notifications push (Web Push)
 
 Les notifications navigateur reposent sur le Web Push avec authentification VAPID, selon le
