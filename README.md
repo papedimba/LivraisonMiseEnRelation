@@ -67,9 +67,30 @@ storage/        Fichiers uploades (pieces d'identite livreurs, logos boutiques, 
    - Un compte admin est cree par le script SQL :
      - email : `admin@livraisonci.local`
      - mot de passe : `ChangeMoi123!`
-   - **Changez immediatement ce mot de passe** apres la premiere connexion (aucune interface de
-     changement de mot de passe n'est fournie pour l'instant : mettez a jour `password_hash` en
-     base via `password_hash('NouveauMotDePasse', PASSWORD_BCRYPT)`).
+   - **Changez immediatement ce mot de passe** apres la premiere connexion via la page
+     « Mon compte » (clic sur votre nom dans l'en-tete).
+
+## Notifications push (Web Push)
+
+Les notifications navigateur reposent sur le Web Push avec authentification VAPID, selon le
+modele « reveil sans payload » : le serveur envoie un push vide qui reveille le service worker
+(`public/sw.js`), lequel va chercher les notifications non lues aupres du serveur avant de les
+afficher. Cela evite tout chiffrement de payload cote PHP.
+
+Mise en place :
+
+1. Generer une paire de cles VAPID : `php scripts/generate_vapid.php`
+   (ecrit `storage/vapid_private.pem` et affiche la cle publique).
+2. Renseigner dans `.env` : `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY_PATH`, `VAPID_SUBJECT`.
+3. Executer la migration `sql/push_subscriptions.sql` si la base existe deja
+   (la table est incluse dans `schema.sql` pour les nouvelles installations).
+
+**Important** : le Web Push exige un contexte securise (**HTTPS**). Il ne fonctionne donc pas en
+`http://` local (sauf `localhost`) mais fonctionnera en production une fois le certificat SSL actif.
+Sans cles VAPID configurees, l'application fonctionne normalement : seules les notifications push
+sont desactivees (les notifications restent visibles dans l'application via la cloche 🔔). Quand une
+page est ouverte, une notification navigateur in-app est aussi affichee si l'utilisateur a accorde
+la permission.
 
 ## Paiements Mobile Money
 

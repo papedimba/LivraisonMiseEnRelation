@@ -10,10 +10,37 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
+    let dernieresNotifsVues = null; // ids deja vus, pour detecter les nouvelles
+
+    function notifierNavigateur(notifications) {
+        // Notification navigateur in-app : seulement si l'onglet n'est pas au
+        // premier plan, si la permission est accordee, et pour les nouvelles
+        // notifications non lues uniquement.
+        if (!('Notification' in window) || Notification.permission !== 'granted') {
+            return;
+        }
+        const nonLues = notifications.filter(n => n.lu == 0);
+        if (dernieresNotifsVues === null) {
+            // Premier chargement : on memorise sans notifier (evite le spam au login).
+            dernieresNotifsVues = new Set(nonLues.map(n => n.id));
+            return;
+        }
+        nonLues.forEach(n => {
+            if (!dernieresNotifsVues.has(n.id) && document.hidden) {
+                try {
+                    new Notification(n.titre, { body: n.message });
+                } catch (e) {}
+            }
+            dernieresNotifsVues.add(n.id);
+        });
+    }
+
     async function chargerNotifications() {
         try {
             const res = await Api.get('/api/notifications/list.php');
             const { notifications, non_lues } = res.data;
+
+            notifierNavigateur(notifications);
 
             if (non_lues > 0) {
                 countBadge.textContent = non_lues;

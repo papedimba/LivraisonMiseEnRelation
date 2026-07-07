@@ -101,6 +101,18 @@ function creer_notification(PDO $db, int $userId, string $titre, string $message
         'type' => $type,
         'lien' => $lien,
     ]);
+
+    // Envoi Web Push best-effort (ne bloque jamais la creation de la notification).
+    if (is_file(__DIR__ . '/WebPush.php')) {
+        try {
+            require_once __DIR__ . '/WebPush.php';
+            if (WebPush::isConfigured()) {
+                WebPush::envoyerAUtilisateur($db, $userId);
+            }
+        } catch (Throwable $e) {
+            error_log('Push notification error: ' . $e->getMessage());
+        }
+    }
 }
 
 function csrf_token(): string

@@ -1,5 +1,6 @@
 .env
 storage/uploads/**
 !storage/uploads/**/.gitkeep
+storage/*.pem
 .DS_Store
 *.log

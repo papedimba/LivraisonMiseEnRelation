@@ -21,6 +21,10 @@ define('DB_PASS', env('DB_PASS', ''));
 define('ANTHROPIC_API_KEY', env('ANTHROPIC_API_KEY', ''));
 define('ANTHROPIC_MODEL', env('ANTHROPIC_MODEL', 'claude-sonnet-4-20250514'));
 
+define('VAPID_PUBLIC_KEY', env('VAPID_PUBLIC_KEY', ''));
+define('VAPID_PRIVATE_KEY_PATH', env('VAPID_PRIVATE_KEY_PATH', ''));
+define('VAPID_SUBJECT', env('VAPID_SUBJECT', ''));
+
 define('MOBILE_MONEY_CONFIG', [
     'orange_money' => [
         'api_key' => env('ORANGE_MONEY_API_KEY', ''),
