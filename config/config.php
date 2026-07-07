@@ -25,24 +25,38 @@ define('VAPID_PUBLIC_KEY', env('VAPID_PUBLIC_KEY', ''));
 define('VAPID_PRIVATE_KEY_PATH', env('VAPID_PRIVATE_KEY_PATH', ''));
 define('VAPID_SUBJECT', env('VAPID_SUBJECT', ''));
 
+// URL de base publique de l'application (pour construire les URLs de retour et
+// de notification transmises aux operateurs Mobile Money).
+define('PUBLIC_BASE_URL', rtrim((string) env('APP_URL', ''), '/'));
+define('DEVISE_PAIEMENT', env('DEVISE_PAIEMENT', 'XOF'));
+
 define('MOBILE_MONEY_CONFIG', [
     'orange_money' => [
-        'api_key' => env('ORANGE_MONEY_API_KEY', ''),
-        'merchant_id' => env('ORANGE_MONEY_MERCHANT_ID', ''),
-        'secret' => env('ORANGE_MONEY_SECRET', ''),
+        // OAuth2 (client credentials) + Web Payment API.
+        'base_url' => env('ORANGE_MONEY_BASE_URL', 'https://api.orange.com'),
+        'client_id' => env('ORANGE_MONEY_CLIENT_ID', ''),
+        'client_secret' => env('ORANGE_MONEY_CLIENT_SECRET', ''),
+        'merchant_key' => env('ORANGE_MONEY_MERCHANT_KEY', ''),
     ],
     'mtn_money' => [
-        'api_key' => env('MTN_MOMO_API_KEY', ''),
+        // MTN MoMo Collection API.
+        'base_url' => env('MTN_MOMO_BASE_URL', 'https://proxy.momoapi.mtn.com'),
         'subscription_key' => env('MTN_MOMO_SUBSCRIPTION_KEY', ''),
-        'user_id' => env('MTN_MOMO_USER_ID', ''),
+        'api_user' => env('MTN_MOMO_API_USER', ''),
+        'api_key' => env('MTN_MOMO_API_KEY', ''),
+        'environment' => env('MTN_MOMO_ENVIRONMENT', 'mtnci'),
     ],
     'moov_money' => [
-        'api_key' => env('MOOV_MONEY_API_KEY', ''),
+        'base_url' => env('MOOV_MONEY_BASE_URL', ''),
+        'client_id' => env('MOOV_MONEY_CLIENT_ID', ''),
+        'client_secret' => env('MOOV_MONEY_CLIENT_SECRET', ''),
         'merchant_id' => env('MOOV_MONEY_MERCHANT_ID', ''),
     ],
     'wave' => [
+        // Wave Checkout API.
+        'base_url' => env('WAVE_BASE_URL', 'https://api.wave.com'),
         'api_key' => env('WAVE_API_KEY', ''),
-        'secret' => env('WAVE_SECRET', ''),
+        'webhook_secret' => env('WAVE_WEBHOOK_SECRET', ''),
     ],
 ]);
 

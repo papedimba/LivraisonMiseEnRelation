@@ -162,11 +162,25 @@ document.getElementById('btn-commander').addEventListener('click', async () => {
 
     try {
         const res = await Api.post('/api/client/orders_create.php', payload);
-        window.location.href = `/client/track.php?ref=${encodeURIComponent(res.data.reference)}`;
+        redirigerApresCommande(res.data);
     } catch (err) {
         alertZone.innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
     }
 });
+
+// Redirige selon le mode de paiement : page de paiement web (Wave/Orange),
+// instructions push (MTN/Moov) ou suivi direct (especes/simulation).
+function redirigerApresCommande(data) {
+    if (data.redirect_url) {
+        window.location.href = data.redirect_url;
+        return;
+    }
+    if (data.instructions && data.statut_paiement === 'en_attente' && document.getElementById('mode_paiement').value !== 'especes') {
+        window.location.href = '/client/payment_return.php?ref=' + encodeURIComponent(data.reference);
+        return;
+    }
+    window.location.href = '/client/track.php?ref=' + encodeURIComponent(data.reference);
+}
 
 initMap();
 chargerTypes();

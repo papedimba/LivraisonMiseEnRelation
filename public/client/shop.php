@@ -212,7 +212,14 @@ async function commander() {
 
     try {
         const res = await Api.post('/api/client/orders_create.php', payload);
-        window.location.href = '/client/track.php?ref=' + encodeURIComponent(res.data.reference);
+        var data = res.data;
+        if (data.redirect_url) {
+            window.location.href = data.redirect_url;
+        } else if (data.instructions && data.statut_paiement === 'en_attente' && payload.mode_paiement !== 'especes') {
+            window.location.href = '/client/payment_return.php?ref=' + encodeURIComponent(data.reference);
+        } else {
+            window.location.href = '/client/track.php?ref=' + encodeURIComponent(data.reference);
+        }
     } catch (err) {
         erreur(err.message);
     }

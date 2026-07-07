@@ -100,8 +100,38 @@ un driver par operateur (Orange Money, MTN Mobile Money, Moov Money, Wave) et un
 **Tant qu'aucune cle API n'est renseignee dans `.env`, chaque driver fonctionne en mode simulation** :
 il genere une reference et confirme le paiement instantanement, ce qui permet de tester tout le
 parcours (commande -> paiement -> livraison -> encaissement du livreur) avant la souscription aux
-vraies API des operateurs. Une fois les identifiants marchands obtenus, completez les methodes
-`initierPaiement()` de chaque driver avec les vrais appels curl vers les API des operateurs.
+vraies API des operateurs.
+
+### Activation des vrais paiements
+
+Les vrais appels API sont deja implementes (config-driven). Pour activer un operateur, renseignez
+ses cles dans `.env` (voir `.env.example`) et definissez `APP_URL` (indispensable pour construire
+les URLs de retour et de notification transmises aux operateurs).
+
+Le paiement Mobile Money est **asynchrone** :
+
+1. Le client passe commande -> le backend appelle `initierPaiement()`.
+2. Selon l'operateur, la reponse contient soit une **URL de paiement** (Wave, Orange Money : le
+   client est redirige vers la page de paiement), soit des **instructions** (MTN, Moov : un push
+   USSD est envoye sur le telephone du client pour saisie du code).
+3. L'operateur confirme le resultat en appelant un **webhook** de la plateforme, qui met a jour la
+   table `paiements` et le `statut_paiement` de la commande, puis notifie le client.
+4. La page `client/payment_return.php` interroge `api/client/payment_status.php` jusqu'a obtenir le
+   statut final.
+
+**URLs de webhook a declarer** dans les consoles marchands des operateurs :
+
+| Operateur | URL a declarer |
+|-----------|----------------|
+| Wave | `https://votre-domaine.com/api/payments/webhook_wave.php` |
+| Orange Money | `https://votre-domaine.com/api/payments/webhook_orange.php` |
+| MTN MoMo | `https://votre-domaine.com/api/payments/webhook_mtn.php` |
+| Moov Money | `https://votre-domaine.com/api/payments/webhook_moov.php` |
+
+Pour Wave, renseignez `WAVE_WEBHOOK_SECRET` : la signature HMAC des webhooks est alors verifiee.
+Les endpoints, chemins d'API et noms de champs peuvent necessiter un ajustement mineur selon le
+contrat marchand fourni par chaque operateur ; ils sont parametrables via les variables `*_BASE_URL`
+de `.env` et centralises dans `includes/PaymentGateway.php`.
 
 ## Assistant IA (Claude)
 

@@ -165,6 +165,8 @@ try {
 
     if ($resultatPaiement['statut'] === 'reussi') {
         $db->prepare("UPDATE commandes SET statut_paiement = 'paye' WHERE id = :id")->execute(['id' => $commandeId]);
+    } elseif ($resultatPaiement['statut'] === 'echec') {
+        $db->prepare("UPDATE commandes SET statut_paiement = 'echec' WHERE id = :id")->execute(['id' => $commandeId]);
     }
 
     creer_notification(
@@ -199,4 +201,8 @@ Response::created([
     'distance_km' => $distanceKm,
     'montant_total' => $montantTotal,
     'statut_paiement' => $resultatPaiement['statut'],
+    // Pour le paiement Mobile Money : URL de paiement web (Wave/Orange) ou
+    // message d'instructions (push USSD MTN/Moov). null si paiement immediat.
+    'redirect_url' => $resultatPaiement['redirect_url'] ?? null,
+    'instructions' => $resultatPaiement['instructions'] ?? null,
 ], 'Commande creee avec succes.');
