@@ -21,10 +21,11 @@ if (!empty($missing)) {
 $commandeId = (int) $body['commande_id'];
 $nouveauStatut = clean_str($body['statut']);
 
+// La transition finale vers "livree" passe par confirm_delivery.php (preuve de
+// livraison obligatoire : code client ou photo).
 $transitionsAutorisees = [
     'acceptee' => 'recuperee',
     'recuperee' => 'en_cours',
-    'en_cours' => 'livree',
 ];
 
 $db = Database::getConnection();
@@ -44,41 +45,11 @@ if (!isset($transitionsAutorisees[$commande['statut']]) || $transitionsAutorisee
 try {
     $db->beginTransaction();
 
-    $champDate = match ($nouveauStatut) {
-        'recuperee' => 'recovered_at',
-        'livree' => 'delivered_at',
-        default => null,
-    };
+    $champDate = $nouveauStatut === 'recuperee' ? ', recovered_at = NOW()' : '';
+    $db->prepare("UPDATE commandes SET statut = :statut{$champDate} WHERE id = :id")
+        ->execute(['statut' => $nouveauStatut, 'id' => $commandeId]);
 
-    $sql = "UPDATE commandes SET statut = :statut";
-    if ($champDate) {
-        $sql .= ", {$champDate} = NOW()";
-    }
-    if ($nouveauStatut === 'livree') {
-        $sql .= ", montant_final = montant_estime";
-    }
-    $sql .= " WHERE id = :id";
-    $db->prepare($sql)->execute(['statut' => $nouveauStatut, 'id' => $commandeId]);
-
-    if ($nouveauStatut === 'livree') {
-        if ($commande['mode_paiement'] === 'especes') {
-            $db->prepare("UPDATE commandes SET statut_paiement = 'paye' WHERE id = :id")->execute(['id' => $commandeId]);
-        }
-
-        $gainLivreur = round((float) $commande['montant_estime'] - (float) $commande['commission_montant'], 0);
-
-        $db->prepare('UPDATE livreur_details SET solde = solde + :gain, nombre_courses = nombre_courses + 1 WHERE user_id = :id')
-            ->execute(['gain' => $gainLivreur, 'id' => $livreurId]);
-
-        creer_notification(
-            $db,
-            (int) $commande['client_id'],
-            'Livraison effectuee',
-            "Votre commande {$commande['reference']} a ete livree. Merci d'evaluer votre livreur !",
-            'commande',
-            "/client/track.php?ref={$commande['reference']}"
-        );
-    } elseif ($nouveauStatut === 'en_cours') {
+    if ($nouveauStatut === 'en_cours') {
         creer_notification(
             $db,
             (int) $commande['client_id'],

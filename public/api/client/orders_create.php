@@ -84,7 +84,18 @@ if (is_array($produits) && count($produits) > 0) {
     }
 }
 
-$montantTotal = $montantLivraison + $montantProduits;
+$montantBrut = $montantLivraison + $montantProduits;
+
+// Code promo (voir includes/promo.php). Sans code valide : reduction nulle.
+require_once __DIR__ . '/../../../includes/promo.php';
+$codePromoSaisi = clean_str(input($body, 'code_promo', ''));
+try {
+    [$codePromoApplique, $reduction, $promoId] = appliquer_code_promo($db, $codePromoSaisi, $montantBrut);
+} catch (PromoException $e) {
+    Response::error($e->getMessage(), 422);
+}
+
+$montantTotal = max(0, $montantBrut - $reduction);
 
 $stmt = $db->prepare("SELECT valeur FROM parametres WHERE cle = 'commission_taux_defaut'");
 $stmt->execute();
@@ -100,12 +111,14 @@ try {
         'INSERT INTO commandes (
             reference, client_id, commercant_id, type_livraison_id, statut,
             adresse_depart, lat_depart, lng_depart, adresse_arrivee, lat_arrivee, lng_arrivee,
-            distance_km, est_express, instructions, montant_estime, commission_taux, commission_montant,
+            distance_km, est_express, instructions, code_livraison,
+            code_promo, reduction, montant_estime, commission_taux, commission_montant,
             mode_paiement, statut_paiement
         ) VALUES (
             :reference, :client_id, :commercant_id, :type_livraison_id, :statut,
             :adresse_depart, :lat_depart, :lng_depart, :adresse_arrivee, :lat_arrivee, :lng_arrivee,
-            :distance_km, :est_express, :instructions, :montant_estime, :commission_taux, :commission_montant,
+            :distance_km, :est_express, :instructions, :code_livraison,
+            :code_promo, :reduction, :montant_estime, :commission_taux, :commission_montant,
             :mode_paiement, :statut_paiement
         )'
     );
@@ -124,6 +137,9 @@ try {
         'distance_km' => $distanceKm,
         'est_express' => $express ? 1 : 0,
         'instructions' => $instructions,
+        'code_livraison' => generer_code_livraison(),
+        'code_promo' => $codePromoApplique,
+        'reduction' => $reduction,
         'montant_estime' => $montantTotal,
         'commission_taux' => $commissionTaux,
         'commission_montant' => $commissionMontant,
@@ -131,6 +147,8 @@ try {
         'statut_paiement' => 'en_attente',
     ]);
     $commandeId = (int) $db->lastInsertId();
+
+    incrementer_usage_promo($db, $promoId);
 
     if (!empty($lignesValidees)) {
         $stmtLigne = $db->prepare(

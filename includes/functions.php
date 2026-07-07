@@ -84,6 +84,23 @@ function generer_reference_commande(): string
     return 'CMD-' . date('ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
 }
 
+/**
+ * Code de livraison a 4 chiffres, communique au client et demande au livreur
+ * a la remise comme preuve de livraison.
+ */
+function generer_code_livraison(): string
+{
+    return str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+}
+
+function parametre(PDO $db, string $cle, ?string $defaut = null): ?string
+{
+    $stmt = $db->prepare('SELECT valeur FROM parametres WHERE cle = :cle');
+    $stmt->execute(['cle' => $cle]);
+    $row = $stmt->fetch();
+    return $row ? $row['valeur'] : $defaut;
+}
+
 function json_response_ok(bool $ok): bool
 {
     return $ok;

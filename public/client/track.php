@@ -61,6 +61,7 @@ function renderDetails(c) {
         <p><strong>Montant :</strong> ${formatMontant(c.montant_estime)}</p>
         <p><strong>Paiement :</strong> ${escapeHtml(c.mode_paiement)} (${escapeHtml(c.statut_paiement)})</p>
         ${c.livreur_nom ? `<p><strong>Livreur :</strong> ${escapeHtml(c.livreur_prenom)} ${escapeHtml(c.livreur_nom)} - ${escapeHtml(c.livreur_telephone)}</p>` : '<p class="text-muted">En attente d\'un livreur...</p>'}
+        ${(c.code_livraison && !['livree', 'annulee'].includes(c.statut)) ? `<p style="font-size:1.1rem;"><strong>Code de livraison :</strong> <span style="letter-spacing:3px;font-weight:800;color:var(--couleur-primaire);">${escapeHtml(c.code_livraison)}</span><br><span class="text-muted">Communiquez ce code au livreur uniquement a la remise de votre colis.</span></p>` : ''}
     `;
 
     const actions = document.getElementById('actions');

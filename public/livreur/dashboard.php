@@ -77,9 +77,25 @@ async function chargerCourseActive() {
         return;
     }
     courseActiveId = active.id;
-    const transitions = { acceptee: ['recuperee', 'Marquer comme recuperee'], recuperee: ['en_cours', 'Marquer en cours de livraison'], en_cours: ['livree', 'Marquer comme livree'] };
+    const transitions = { acceptee: ['recuperee', 'Marquer comme recuperee'], recuperee: ['en_cours', 'Marquer en cours de livraison'] };
     const [prochainStatut, libelle] = transitions[active.statut] || [];
     zone.classList.remove('hidden');
+
+    // A l'etape "en_cours", la confirmation de livraison exige une preuve.
+    const blocLivraison = active.statut === 'en_cours' ? `
+        <div class="mt-1" style="border-top:1px solid var(--couleur-bordure);padding-top:0.75rem;">
+            <p><strong>Confirmer la livraison</strong> (preuve requise)</p>
+            <div class="form-group">
+                <label for="code-livraison">Code de livraison communique par le client</label>
+                <input type="text" id="code-livraison" inputmode="numeric" maxlength="4" placeholder="4 chiffres">
+            </div>
+            <div class="form-group">
+                <label for="photo-livraison">Ou joindre une photo (preuve)</label>
+                <input type="file" id="photo-livraison" accept="image/*" capture="environment">
+            </div>
+            <button id="btn-livrer" class="btn">Confirmer la livraison</button>
+        </div>` : '';
+
     zone.innerHTML = `
         <h2>Course en cours : ${escapeHtml(active.reference)}</h2>
         <p>${badgeStatut(active.statut)} - ${escapeHtml(active.adresse_depart)} &rarr; ${escapeHtml(active.adresse_arrivee)}</p>
@@ -88,10 +104,35 @@ async function chargerCourseActive() {
             <a class="btn btn-secondaire" href="/livreur/navigation.php?commande_id=${active.id}">🧭 Naviguer</a>
             ${prochainStatut ? `<button id="btn-avancer" class="btn">${libelle}</button>` : ''}
         </div>
+        ${blocLivraison}
     `;
+
     document.getElementById('btn-avancer')?.addEventListener('click', async () => {
         try {
             await Api.post('/api/livreur/orders_update_status.php', { commande_id: active.id, statut: prochainStatut });
+            chargerCourseActive();
+            chargerCommandes();
+        } catch (err) {
+            alert(err.message);
+        }
+    });
+
+    document.getElementById('btn-livrer')?.addEventListener('click', async () => {
+        const code = document.getElementById('code-livraison').value.trim();
+        const photoInput = document.getElementById('photo-livraison');
+        const photo = photoInput.files[0];
+        if (!code && !photo) {
+            alert('Saisissez le code du client ou joignez une photo.');
+            return;
+        }
+        try {
+            const form = new FormData();
+            form.append('commande_id', active.id);
+            if (code) { form.append('code_livraison', code); }
+            if (photo) { form.append('photo', photo); }
+            const res = await fetch('/api/livreur/confirm_delivery.php', { method: 'POST', credentials: 'same-origin', body: form });
+            const body = await res.json();
+            if (!res.ok || !body.success) { throw new Error(body.message || 'Erreur'); }
             chargerCourseActive();
             chargerCommandes();
         } catch (err) {

@@ -156,6 +156,13 @@ CREATE TABLE IF NOT EXISTS commandes (
     distance_km DECIMAL(8,2) NOT NULL DEFAULT 0,
     est_express TINYINT(1) NOT NULL DEFAULT 0,
     instructions TEXT,
+    code_livraison VARCHAR(10) DEFAULT NULL,
+    preuve_photo VARCHAR(255) DEFAULT NULL,
+    preuve_type ENUM('code','photo','livreur') DEFAULT NULL,
+    relance_at DATETIME DEFAULT NULL,
+    nombre_relances INT UNSIGNED NOT NULL DEFAULT 0,
+    code_promo VARCHAR(40) DEFAULT NULL,
+    reduction DECIMAL(10,2) NOT NULL DEFAULT 0,
     montant_estime DECIMAL(10,2) NOT NULL DEFAULT 0,
     montant_final DECIMAL(10,2) DEFAULT NULL,
     commission_taux DECIMAL(5,2) NOT NULL DEFAULT 15.00,
@@ -327,6 +334,24 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ----------------------------------------------------------------------------
+-- Codes promo
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS codes_promo (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(40) NOT NULL,
+    type ENUM('pourcentage','montant') NOT NULL DEFAULT 'pourcentage',
+    valeur DECIMAL(10,2) NOT NULL,
+    montant_min DECIMAL(10,2) NOT NULL DEFAULT 0,
+    usage_max INT UNSIGNED DEFAULT NULL,
+    usage_count INT UNSIGNED NOT NULL DEFAULT 0,
+    date_debut DATE DEFAULT NULL,
+    date_fin DATE DEFAULT NULL,
+    actif TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_code_promo (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------------------------------------------------------
 -- Parametres globaux (commission par defaut, cles API, etc.)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS parametres (
@@ -381,7 +406,10 @@ INSERT INTO parametres (cle, valeur) VALUES
 ('devise', 'FCFA'),
 ('anthropic_model', 'claude-sonnet-4-20250514'),
 ('app_nom', 'LivraisonCI'),
-('ville_defaut', 'Bouake');
+('ville_defaut', 'Bouake'),
+('relance_commande_minutes', '3'),
+('annulation_auto_minutes', '20'),
+('reattribution_acceptee_minutes', '10');
 
 -- Compte admin par defaut (mot de passe: ChangeMoi123! - a changer immediatement)
 -- Hash genere avec password_hash('ChangeMoi123!', PASSWORD_BCRYPT)
