@@ -17,9 +17,10 @@ require __DIR__ . '/includes/header.php';
         <h1>Connexion</h1>
         <p class="subtitle">Accedez a votre espace client, livreur, commercant ou administrateur.</p>
         <p style="font-size:0.75rem;color:#888;">
-            Version de la page : <strong>DIAG-3</strong> &middot;
+            Version de la page : <strong>DIAG-4</strong> &middot;
             <span id="js-check" style="color:#dc2626;">JavaScript INACTIF</span>
         </p>
+        <div id="diag" style="font-size:0.8rem;color:#2563eb;margin-bottom:0.5rem;"></div>
         <div id="alert-zone"></div>
         <form id="login-form">
             <div class="form-group">
@@ -30,7 +31,7 @@ require __DIR__ . '/includes/header.php';
                 <label for="password">Mot de passe</label>
                 <input type="password" id="password" name="password" required autocomplete="current-password">
             </div>
-            <button type="submit" class="btn btn-block">Se connecter</button>
+            <button type="button" id="btn-login" class="btn btn-block">Se connecter</button>
         </form>
     </div>
 </div>
@@ -47,6 +48,13 @@ require __DIR__ . '/includes/header.php';
         zone.appendChild(div);
     }
 
+    function diag(message) {
+        var zone = document.getElementById('diag');
+        if (zone) {
+            zone.textContent = message;
+        }
+    }
+
     function attacher() {
         var check = document.getElementById('js-check');
         if (check) {
@@ -54,12 +62,16 @@ require __DIR__ . '/includes/header.php';
             check.style.color = '#16a34a';
         }
 
-        var form = document.getElementById('login-form');
-        if (!form) {
+        var btn = document.getElementById('btn-login');
+        if (!btn) {
+            diag('ERREUR : bouton introuvable dans le DOM.');
             return;
         }
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
+
+        diag('Pret. Cliquez sur "Se connecter".');
+
+        btn.addEventListener('click', function () {
+            diag('1/3 - Clic recu, envoi de la requete...');
 
             var data = {
                 email: document.getElementById('email').value.trim(),
@@ -72,13 +84,13 @@ require __DIR__ . '/includes/header.php';
                 credentials: 'same-origin',
                 body: JSON.stringify(data),
             }).then(function (res) {
+                diag('2/3 - Reponse recue : HTTP ' + res.status);
                 return res.text().then(function (texte) {
                     var body;
                     try {
                         body = JSON.parse(texte);
                     } catch (err) {
-                        // La reponse n'est pas du JSON : on affiche un extrait pour diagnostic.
-                        throw new Error('Reponse inattendue du serveur (HTTP ' + res.status + '). Verifiez la connexion a la base de donnees. Debut de la reponse : ' + texte.slice(0, 200));
+                        throw new Error('Reponse non-JSON (HTTP ' + res.status + '). Debut : ' + texte.slice(0, 200));
                     }
                     if (!res.ok || !body.success) {
                         throw new Error(body.message || ('Erreur HTTP ' + res.status));
@@ -86,6 +98,7 @@ require __DIR__ . '/includes/header.php';
                     return body;
                 });
             }).then(function (body) {
+                diag('3/3 - Connexion reussie, redirection...');
                 var chemins = {
                     client: '/client/dashboard.php',
                     livreur: '/livreur/dashboard.php',
@@ -94,7 +107,7 @@ require __DIR__ . '/includes/header.php';
                 };
                 window.location.href = chemins[body.data.role] || '/';
             }).catch(function (err) {
-                console.error('Erreur de connexion :', err);
+                diag('Echec.');
                 afficherErreur(err.message);
             });
         });
