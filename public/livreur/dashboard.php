@@ -84,7 +84,10 @@ async function chargerCourseActive() {
         <h2>Course en cours : ${escapeHtml(active.reference)}</h2>
         <p>${badgeStatut(active.statut)} - ${escapeHtml(active.adresse_depart)} &rarr; ${escapeHtml(active.adresse_arrivee)}</p>
         <p><strong>Montant :</strong> ${formatMontant(active.montant_estime)}</p>
-        ${prochainStatut ? `<button id="btn-avancer" class="btn">${libelle}</button>` : ''}
+        <div class="flex">
+            <a class="btn btn-secondaire" href="/livreur/navigation.php?commande_id=${active.id}">🧭 Naviguer</a>
+            ${prochainStatut ? `<button id="btn-avancer" class="btn">${libelle}</button>` : ''}
+        </div>
     `;
     document.getElementById('btn-avancer')?.addEventListener('click', async () => {
         try {
