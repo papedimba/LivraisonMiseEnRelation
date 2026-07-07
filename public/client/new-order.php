@@ -66,6 +66,14 @@ require __DIR__ . '/../includes/header.php';
             <div class="label">Montant estime</div>
             <div class="valeur" id="estim-montant">-</div>
         </div>
+        <div class="form-group">
+            <label for="code_promo">Code promo (optionnel)</label>
+            <div class="flex">
+                <input type="text" id="code_promo" placeholder="Ex: BIENVENUE10" style="flex:1;">
+                <button type="button" class="btn btn-ghost" onclick="verifierPromo()">Appliquer</button>
+            </div>
+            <div id="promo-message" style="font-size:0.85rem;margin-top:0.35rem;"></div>
+        </div>
         <button id="btn-commander" class="btn btn-block" disabled>Estimer d'abord</button>
     </div>
 </div>
@@ -129,6 +137,27 @@ async function estimer() {
     }
 }
 
+// Verifie et applique un code promo sur le montant estime courant.
+async function verifierPromo() {
+    const zone = document.getElementById('promo-message');
+    const code = document.getElementById('code_promo').value.trim();
+    if (!code) { zone.textContent = ''; return; }
+    // Recupere le montant estime affiche (nombre).
+    const txt = document.getElementById('estim-montant').textContent.replace(/[^\d]/g, '');
+    const montant = parseInt(txt || '0', 10);
+    if (!montant) {
+        zone.innerHTML = '<span style="color:var(--couleur-danger)">Estimez d\'abord la commande.</span>';
+        return;
+    }
+    try {
+        const res = await Api.post('/api/client/promo_check.php', { code: code, montant: montant });
+        zone.innerHTML = '<span style="color:var(--couleur-succes)">Code applique : -'
+            + formatMontant(res.data.reduction) + ' → ' + formatMontant(res.data.nouveau_montant) + '</span>';
+    } catch (err) {
+        zone.innerHTML = '<span style="color:var(--couleur-danger)">' + escapeHtml(err.message) + '</span>';
+    }
+}
+
 document.getElementById('type_livraison').addEventListener('change', estimer);
 document.getElementById('express').addEventListener('change', estimer);
 document.getElementById('mode_paiement').addEventListener('change', () => {
@@ -158,6 +187,7 @@ document.getElementById('btn-commander').addEventListener('click', async () => {
         instructions: document.getElementById('instructions').value.trim(),
         mode_paiement: document.getElementById('mode_paiement').value,
         numero_paiement: document.getElementById('numero_paiement').value.trim(),
+        code_promo: document.getElementById('code_promo').value.trim(),
     };
 
     try {
