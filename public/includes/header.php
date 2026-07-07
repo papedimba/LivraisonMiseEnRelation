@@ -41,6 +41,7 @@ $nomComplet = $_SESSION['nom_complet'] ?? '';
                 <a href="/admin/validations.php">Validations</a>
                 <a href="/admin/orders.php">Commandes</a>
                 <a href="/admin/complaints.php">Reclamations</a>
+                <a href="/admin/zones.php">Zones</a>
                 <a href="/admin/settings.php">Parametres</a>
             <?php endif; ?>
         </nav>

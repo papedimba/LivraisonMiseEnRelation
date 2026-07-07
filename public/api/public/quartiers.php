@@ -10,7 +10,7 @@ $stmt = $db->query(
     'SELECT q.id, q.nom, v.nom AS ville
      FROM quartiers q
      JOIN villes v ON v.id = q.ville_id
-     WHERE q.actif = 1
+     WHERE q.actif = 1 AND v.actif = 1
      ORDER BY v.nom, q.nom'
 );
 
