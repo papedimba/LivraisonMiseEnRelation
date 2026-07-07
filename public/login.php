@@ -17,7 +17,7 @@ require __DIR__ . '/includes/header.php';
         <h1>Connexion</h1>
         <p class="subtitle">Accedez a votre espace client, livreur, commercant ou administrateur.</p>
         <p style="font-size:0.75rem;color:#888;">
-            Version de la page : <strong>DIAG-6</strong> &middot;
+            Version de la page : <strong>DIAG-7</strong> &middot;
             <span id="js-check" style="color:#dc2626;">JavaScript INACTIF</span>
         </p>
         <div id="diag" style="font-size:0.8rem;color:#2563eb;margin-bottom:0.5rem;"></div>
@@ -36,9 +36,17 @@ require __DIR__ . '/includes/header.php';
     </div>
 </div>
 <script>
-// Fonction globale appelee via attribut onclick/onsubmit inline : ces attributs
-// survivent a une reconstruction du DOM par une extension de traduction, la ou
-// un addEventListener ajoute par JS serait perdu.
+// MOUCHARD : rapporte a l'ecran l'element reellement clique, pour tout clic
+// n'importe ou sur la page. Permet de voir si le clic atteint le bouton.
+document.addEventListener('click', function (e) {
+    var d = document.getElementById('diag');
+    var t = e.target;
+    if (d) {
+        d.textContent = 'CLIC sur <' + t.tagName + '> id="' + (t.id || '(aucun)') + '" classe="' + (t.className || '(aucune)') + '"';
+    }
+}, true);
+
+// Fonction globale appelee via attribut onclick/onsubmit inline.
 function loginNow() {
     var diagZone = document.getElementById('diag');
     var alertZone = document.getElementById('alert-zone');
