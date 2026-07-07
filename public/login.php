@@ -16,6 +16,8 @@ require __DIR__ . '/includes/header.php';
     <div class="card">
         <h1>Connexion</h1>
         <p class="subtitle">Accedez a votre espace client, livreur, commercant ou administrateur.</p>
+        <p style="font-size:0.75rem;color:#888;">Version : <strong>DIAG-8</strong> &middot; <span id="etat">chargement...</span></p>
+        <div id="err-globale" style="color:#dc2626;font-size:0.8rem;white-space:pre-wrap;"></div>
         <div id="alert-zone"></div>
 
         <!-- Pas de <form> : on evite toute soumission native qui rechargerait la page. -->
@@ -31,7 +33,18 @@ require __DIR__ . '/includes/header.php';
     </div>
 </div>
 <script>
+// Capteur d'erreurs global : affiche a l'ecran toute erreur JS non capturee.
+window.onerror = function (message, source, ligne, colonne) {
+    var z = document.getElementById('err-globale');
+    if (z) {
+        z.textContent = 'ERREUR JS : ' + message + '  (' + source + ' ligne ' + ligne + ')';
+    }
+    return false;
+};
+
 function loginNow() {
+    var etat = document.getElementById('etat');
+    if (etat) { etat.textContent = 'fonction loginNow appelee'; }
     var alertZone = document.getElementById('alert-zone');
     var btn = document.getElementById('btn-login');
 
@@ -53,6 +66,7 @@ function loginNow() {
 
     btn.disabled = true;
     btn.textContent = 'Connexion...';
+    if (etat) { etat.textContent = 'envoi de la requete...'; }
 
     fetch('/api/auth/login.php', {
         method: 'POST',
@@ -60,6 +74,7 @@ function loginNow() {
         credentials: 'same-origin',
         body: JSON.stringify({ email: email, password: password })
     }).then(function (res) {
+        if (etat) { etat.textContent = 'reponse HTTP ' + res.status; }
         return res.text().then(function (texte) {
             var body;
             try {
@@ -97,5 +112,11 @@ document.addEventListener('keydown', function (e) {
         }
     }
 });
+
+// Confirme que ce script s'est bien execute jusqu'au bout.
+(function () {
+    var etat = document.getElementById('etat');
+    if (etat) { etat.textContent = 'pret (typeof loginNow = ' + (typeof loginNow) + ')'; }
+})();
 </script>
 <?php require __DIR__ . '/includes/footer.php'; ?>
