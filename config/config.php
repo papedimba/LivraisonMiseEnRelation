@@ -56,7 +56,12 @@ if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
         'lifetime' => SESSION_LIFETIME,
         'path' => '/',
-        'secure' => APP_ENV === 'production',
+        // Le flag Secure doit refleter le VRAI protocole de la connexion, pas
+        // l'environnement : en HTTP (dev local, Laragon) un cookie Secure serait
+        // rejete par le navigateur et la session perdue apres la connexion.
+        'secure' => (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+            || (($_SERVER['SERVER_PORT'] ?? null) == 443)
+            || (strtolower($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https'),
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
