@@ -17,7 +17,7 @@ require __DIR__ . '/includes/header.php';
         <h1>Connexion</h1>
         <p class="subtitle">Accedez a votre espace client, livreur, commercant ou administrateur.</p>
         <p style="font-size:0.75rem;color:#888;">
-            Version de la page : <strong>DIAG-5</strong> &middot;
+            Version de la page : <strong>DIAG-6</strong> &middot;
             <span id="js-check" style="color:#dc2626;">JavaScript INACTIF</span>
         </p>
         <div id="diag" style="font-size:0.8rem;color:#2563eb;margin-bottom:0.5rem;"></div>
@@ -108,5 +108,31 @@ function loginNow() {
         diagZone.textContent = 'Pret. Cliquez sur "Se connecter".';
     }
 })();
+
+// Ecouteur delegue au niveau de document (phase de capture). document n'est
+// jamais reconstruit par une extension, donc ce declencheur survit meme si le
+// bouton lui-meme est recree/remplace et perd son attribut onclick.
+document.addEventListener('click', function (e) {
+    var el = e.target;
+    while (el) {
+        if (el.id === 'btn-login') {
+            e.preventDefault();
+            loginNow();
+            return;
+        }
+        el = el.parentElement;
+    }
+}, true);
+
+// Filet supplementaire : soumission du formulaire par la touche Entree.
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+        var actif = document.activeElement;
+        if (actif && (actif.id === 'email' || actif.id === 'password')) {
+            e.preventDefault();
+            loginNow();
+        }
+    }
+}, true);
 </script>
 <?php require __DIR__ . '/includes/footer.php'; ?>
