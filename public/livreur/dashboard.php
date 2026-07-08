@@ -71,6 +71,19 @@ function demarrerSuiviPosition() {
     }, () => {}, { enableHighAccuracy: true, maximumAge: 10000 });
 }
 
+// Reflete la disponibilite reelle du livreur au chargement (evite d'afficher
+// "Hors ligne" alors que le livreur est en ligne cote serveur).
+async function chargerDisponibilite() {
+    try {
+        const res = await Api.get('/api/livreur/profile.php');
+        const dispo = res.data.disponibilite || 'hors_ligne';
+        document.getElementById('disponibilite').value = dispo;
+        if (dispo === 'en_ligne') {
+            demarrerSuiviPosition();
+        }
+    } catch (err) { /* on garde la valeur par defaut */ }
+}
+
 async function chargerCourseActive() {
     const res = await Api.get('/api/livreur/orders_history.php');
     const active = res.data.commandes.find(c => ['acceptee', 'recuperee', 'en_cours'].includes(c.statut));
@@ -239,6 +252,7 @@ async function repondreOffre(decision) {
     }
 }
 
+chargerDisponibilite();
 chargerOffre();
 chargerCourseActive();
 chargerCommandes();
