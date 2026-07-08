@@ -43,6 +43,7 @@ require __DIR__ . '/../includes/header.php';
 const alertZone = document.getElementById('alert-zone');
 let watchId = null;
 let courseActiveId = null;
+let derniereSignatureCourse = null; // pour ne re-render que si l'etat change
 
 document.getElementById('disponibilite').addEventListener('change', async (e) => {
     try {
@@ -77,9 +78,19 @@ async function chargerCourseActive() {
     if (!active) {
         zone.classList.add('hidden');
         courseActiveId = null;
+        derniereSignatureCourse = null;
         return;
     }
     courseActiveId = active.id;
+
+    // On ne reconstruit la carte que si l'etat change reellement, sinon le
+    // rafraichissement automatique effacerait le code/la photo en cours de saisie.
+    const signature = active.id + ':' + active.statut;
+    if (signature === derniereSignatureCourse) {
+        return;
+    }
+    derniereSignatureCourse = signature;
+
     const transitions = { acceptee: ['recuperee', 'Marquer comme recuperee'], recuperee: ['en_cours', 'Marquer en cours de livraison'] };
     const [prochainStatut, libelle] = transitions[active.statut] || [];
     zone.classList.remove('hidden');
