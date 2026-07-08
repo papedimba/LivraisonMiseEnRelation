@@ -12,6 +12,7 @@
     <?php endforeach; ?>
 </nav>
 <?php endif; ?>
+<script src="/assets/js/pwa.js"></script>
 <?php if (Auth::check()): ?>
 <script src="/assets/js/push.js"></script>
 <?php endif; ?>

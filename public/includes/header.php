@@ -48,6 +48,12 @@ function nav_actif(string $href, string $courant): bool
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#6c4dff">
 <title><?= htmlspecialchars($pageTitle ?? APP_NOM) ?> - <?= htmlspecialchars(APP_NOM) ?></title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/assets/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="<?= htmlspecialchars(APP_NOM) ?>">
 <link rel="stylesheet" href="/assets/css/style.css">
 <script src="/assets/js/api.js"></script>
 <script src="/assets/js/app.js"></script>

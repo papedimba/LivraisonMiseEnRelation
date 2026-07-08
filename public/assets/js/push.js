@@ -28,7 +28,8 @@
         }).catch(function () {});
     }
 
-    navigator.serviceWorker.register('/sw.js').then(function (reg) {
+    // Le service worker est enregistre par pwa.js ; on attend qu'il soit pret.
+    navigator.serviceWorker.ready.then(function (reg) {
         fetch('/api/notifications/vapid_public_key.php', { credentials: 'same-origin' })
             .then(function (r) { return r.json(); })
             .then(function (res) {

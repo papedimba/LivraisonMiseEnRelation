@@ -108,6 +108,20 @@ Une suite de tests sans dependance (ni Composer ni PHPUnit) est fournie dans `te
   `TEST_DB_NAME`, `TEST_PORT`. Le code de sortie est non nul si un test echoue
   (utilisable en integration continue).
 
+## Application installable (PWA)
+
+L'application est une Progressive Web App installable sur mobile et ordinateur
+(icone sur l'ecran d'accueil, ouverture plein ecran) :
+
+- manifeste `public/manifest.webmanifest` + icones `public/assets/icons/` ;
+- service worker `public/sw.js` (mise en cache des ressources statiques, page
+  hors-ligne minimale, notifications push) ;
+- `public/assets/js/pwa.js` enregistre le service worker et affiche un bouton
+  « Installer l'application » quand le navigateur le propose.
+
+Les icones se regenerent avec `php scripts/generate_icons.php`. **L'installation
+requiert HTTPS** (ou localhost en developpement).
+
 ## Notifications push (Web Push)
 
 Les notifications navigateur reposent sur le Web Push avec authentification VAPID, selon le
