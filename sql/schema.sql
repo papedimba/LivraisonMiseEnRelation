@@ -427,7 +427,9 @@ INSERT INTO parametres (cle, valeur) VALUES
 ('relance_commande_minutes', '3'),
 ('annulation_auto_minutes', '20'),
 ('reattribution_acceptee_minutes', '10'),
-('dispatch_offre_secondes', '45');
+('dispatch_offre_secondes', '45'),
+('dispatch_rayon_max_km', '10'),
+('dispatch_poids_note', '0.5');
 
 -- Compte admin par defaut (mot de passe: ChangeMoi123! - a changer immediatement)
 -- Hash genere avec password_hash('ChangeMoi123!', PASSWORD_BCRYPT)

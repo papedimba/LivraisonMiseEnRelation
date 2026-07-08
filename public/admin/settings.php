@@ -55,6 +55,29 @@ require __DIR__ . '/../includes/header.php';
 </div>
 
 <div class="card mt-1">
+    <h2>Dispatch automatique</h2>
+    <div id="alert-zone-3"></div>
+    <div class="grid grid-4">
+        <div class="form-group">
+            <label for="dispatch_offre_secondes">Delai de reponse (secondes)</label>
+            <input type="number" id="dispatch_offre_secondes" min="10" max="300">
+        </div>
+        <div class="form-group">
+            <label for="dispatch_rayon_max_km">Rayon max (km, 0 = illimite)</label>
+            <input type="number" id="dispatch_rayon_max_km" min="0" step="0.5">
+        </div>
+        <div class="form-group">
+            <label for="dispatch_poids_note">Poids de la note (km / point)</label>
+            <input type="number" id="dispatch_poids_note" min="0" step="0.1">
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;">
+            <button type="button" class="btn btn-block" onclick="enregistrerDispatch()">Enregistrer</button>
+        </div>
+    </div>
+    <p class="text-muted">Le livreur choisi minimise : distance + (5 - note) x poids. Un poids de 0 = uniquement la distance.</p>
+</div>
+
+<div class="card mt-1">
     <h2>Types de livraison &amp; tarifs</h2>
     <div class="table-wrap">
         <table>
@@ -71,6 +94,23 @@ async function chargerParametres() {
     document.getElementById('commission_taux_defaut').value = p.commission_taux_defaut ?? 15;
     document.getElementById('app_nom').value = p.app_nom ?? '';
     document.getElementById('ville_defaut').value = p.ville_defaut ?? '';
+    document.getElementById('dispatch_offre_secondes').value = p.dispatch_offre_secondes ?? 45;
+    document.getElementById('dispatch_rayon_max_km').value = p.dispatch_rayon_max_km ?? 10;
+    document.getElementById('dispatch_poids_note').value = p.dispatch_poids_note ?? 0.5;
+}
+
+async function enregistrerDispatch() {
+    const alertZone = document.getElementById('alert-zone-3');
+    try {
+        await Api.post('/api/admin/settings.php', {
+            dispatch_offre_secondes: document.getElementById('dispatch_offre_secondes').value,
+            dispatch_rayon_max_km: document.getElementById('dispatch_rayon_max_km').value,
+            dispatch_poids_note: document.getElementById('dispatch_poids_note').value,
+        });
+        alertZone.innerHTML = '<div class="alert alert-succes">Parametres de dispatch enregistres.</div>';
+    } catch (err) {
+        alertZone.innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
+    }
 }
 
 document.getElementById('settings-form').addEventListener('submit', async (e) => {

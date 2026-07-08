@@ -24,7 +24,7 @@ function dispatcher_commande(PDO $db, int $commandeId): bool
 
     // Candidats : en ligne, valides, avec position, libres, pas deja sollicites.
     $stmt = $db->prepare(
-        "SELECT ld.user_id, ld.latitude, ld.longitude
+        "SELECT ld.user_id, ld.latitude, ld.longitude, ld.note_moyenne
          FROM livreur_details ld
          WHERE ld.disponibilite = 'en_ligne'
            AND ld.statut_validation = 'valide'
@@ -44,17 +44,35 @@ function dispatcher_commande(PDO $db, int $commandeId): bool
         return false;
     }
 
-    // Selection du plus proche (Haversine cote PHP).
+    // Parametres de scoring (parametrables par l'admin).
+    $rayonMax = (float) parametre($db, 'dispatch_rayon_max_km', '10');
+    $poidsNote = (float) parametre($db, 'dispatch_poids_note', '0.5');
+
+    // Selection par SCORE (plus bas = meilleur) :
+    //   score = distance_km + (5 - note_moyenne) * poids_note
+    // A distance comparable, un livreur mieux note est prefere. Les livreurs
+    // au-dela du rayon maximum sont ecartes.
     $latC = (float) $commande['lat_depart'];
     $lngC = (float) $commande['lng_depart'];
     $meilleur = null;
     $meilleureDistance = null;
+    $meilleurScore = null;
     foreach ($candidats as $c) {
         $d = haversine_distance_km($latC, $lngC, (float) $c['latitude'], (float) $c['longitude']);
-        if ($meilleureDistance === null || $d < $meilleureDistance) {
+        if ($rayonMax > 0 && $d > $rayonMax) {
+            continue;
+        }
+        $score = $d + (5 - (float) $c['note_moyenne']) * $poidsNote;
+        if ($meilleurScore === null || $score < $meilleurScore) {
+            $meilleurScore = $score;
             $meilleureDistance = $d;
             $meilleur = $c;
         }
+    }
+
+    // Aucun livreur dans le rayon.
+    if ($meilleur === null) {
+        return false;
     }
 
     $secondes = (int) parametre($db, 'dispatch_offre_secondes', '45');

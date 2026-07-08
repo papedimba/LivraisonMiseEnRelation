@@ -15,5 +15,8 @@ CREATE TABLE IF NOT EXISTS dispatch_offres (
     KEY idx_offre_commande (commande_id, statut)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO parametres (cle, valeur) VALUES ('dispatch_offre_secondes', '45')
+INSERT INTO parametres (cle, valeur) VALUES
+    ('dispatch_offre_secondes', '45'),
+    ('dispatch_rayon_max_km', '10'),
+    ('dispatch_poids_note', '0.5')
 ON DUPLICATE KEY UPDATE valeur = valeur;

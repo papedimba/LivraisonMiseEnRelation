@@ -70,6 +70,24 @@ storage/        Fichiers uploades (pieces d'identite livreurs, logos boutiques, 
    - **Changez immediatement ce mot de passe** apres la premiere connexion via la page
      « Mon compte » (clic sur votre nom dans l'en-tete).
 
+## Dispatch automatique par proximite
+
+A la creation d'une commande, la course est proposee au livreur en ligne le plus
+pertinent (modele d'offre : il peut accepter ou refuser, sinon l'offre passe au
+suivant via le cron `scripts/process_orders.php`). Le choix minimise un score :
+
+```
+score = distance_km + (5 - note_moyenne) * dispatch_poids_note
+```
+
+A distance comparable, un livreur mieux note est prefere. Trois parametres,
+reglables dans l'espace admin (Parametres > Dispatch automatique) ou dans la
+table `parametres` :
+
+- `dispatch_offre_secondes` : delai laisse au livreur pour repondre (defaut 45) ;
+- `dispatch_rayon_max_km` : distance maximale d'attribution, 0 = illimite (defaut 10) ;
+- `dispatch_poids_note` : poids de la note en km par point, 0 = distance seule (defaut 0.5).
+
 ## Tests automatises
 
 Une suite de tests sans dependance (ni Composer ni PHPUnit) est fournie dans `tests/` :
