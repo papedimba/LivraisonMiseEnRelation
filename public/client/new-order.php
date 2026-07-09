@@ -8,29 +8,27 @@ require __DIR__ . '/../includes/header.php';
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<h1>Nouvelle commande</h1>
-<p class="subtitle">Choisissez le type de livraison, le point de depart et le point d'arrivee.</p>
+<div class="order-screen">
+    <div id="map" class="order-map"></div>
 
-<div class="grid grid-2">
-    <div class="card">
-        <div class="form-group">
-            <label for="type_livraison">Type de livraison</label>
-            <select id="type_livraison"></select>
+    <div class="order-sheet">
+        <div class="grip"></div>
+        <h1>Envoyer un colis</h1>
+
+        <div class="addr-row">
+            <span class="addr-icon">📦</span>
+            <input type="text" id="adresse_depart" placeholder="Point de depart (cliquez sur la carte)" required>
+        </div>
+        <div class="addr-row">
+            <span class="addr-icon arrivee">🏁</span>
+            <input type="text" id="adresse_arrivee" placeholder="Adresse de livraison (cliquez sur la carte)" required>
         </div>
 
-        <div class="form-group">
-            <label>Point de depart <span class="text-muted">(cliquez sur la carte, marqueur orange)</span></label>
-            <input type="text" id="adresse_depart" placeholder="Adresse de depart" required>
-        </div>
-        <div class="form-group">
-            <label>Point d'arrivee <span class="text-muted">(cliquez sur la carte, marqueur vert)</span></label>
-            <input type="text" id="adresse_arrivee" placeholder="Adresse d'arrivee" required>
-        </div>
+        <div id="alert-zone" class="mt-1"></div>
 
-        <div id="map"></div>
-        <p class="text-muted mt-1">Astuce : un premier clic place le depart, le second l'arrivee, puis les clics suivants replacent l'arrivee.</p>
+        <div class="type-cards" id="type-cards"></div>
 
-        <div class="form-group mt-1">
+        <div class="form-group">
             <label><input type="checkbox" id="express" style="width:auto; display:inline-block;"> Livraison express (supplement)</label>
         </div>
 
@@ -39,10 +37,9 @@ require __DIR__ . '/../includes/header.php';
             <textarea id="instructions" placeholder="Ex: appartement 3B, appeler en arrivant"></textarea>
         </div>
 
-        <div class="form-group">
-            <label for="mode_paiement">Mode de paiement</label>
+        <div class="pay-row">
             <select id="mode_paiement">
-                <option value="especes">Especes a la livraison</option>
+                <option value="especes">💵 Especes a la livraison</option>
                 <option value="orange_money">Orange Money</option>
                 <option value="mtn_money">MTN Mobile Money</option>
                 <option value="moov_money">Moov Money</option>
@@ -53,19 +50,7 @@ require __DIR__ . '/../includes/header.php';
             <label for="numero_paiement">Numero Mobile Money</label>
             <input type="text" id="numero_paiement" placeholder="07 00 00 00 00">
         </div>
-    </div>
 
-    <div class="card">
-        <h2>Estimation</h2>
-        <div id="alert-zone"></div>
-        <div class="stat-tile mb-1">
-            <div class="label">Distance</div>
-            <div class="valeur" id="estim-distance">-</div>
-        </div>
-        <div class="stat-tile mb-1">
-            <div class="label">Montant estime</div>
-            <div class="valeur" id="estim-montant">-</div>
-        </div>
         <div class="form-group">
             <label for="code_promo">Code promo (optionnel)</label>
             <div class="flex">
@@ -74,7 +59,11 @@ require __DIR__ . '/../includes/header.php';
             </div>
             <div id="promo-message" style="font-size:0.85rem;margin-top:0.35rem;"></div>
         </div>
-        <button id="btn-commander" class="btn btn-block" disabled>Estimer d'abord</button>
+
+        <div class="estim-line"><span>Distance</span><span id="estim-distance">-</span></div>
+        <div class="estim-line"><span>Montant estime</span><strong id="estim-montant">-</strong></div>
+
+        <button id="btn-commander" class="btn btn-block mt-1" disabled>Placez les points sur la carte</button>
     </div>
 </div>
 
@@ -82,6 +71,8 @@ require __DIR__ . '/../includes/header.php';
 let map, markerDepart, markerArrivee;
 let coords = { depart: null, arrivee: null };
 let typesLivraison = [];
+let typeSelectionneId = null;
+let derniereDistanceKm = null;
 
 function initMap() {
     map = L.map('map').setView([7.6900, -5.0300], 13); // Bouake
@@ -105,33 +96,70 @@ function initMap() {
     });
 }
 
+// Prix indicatif d'un type de livraison ("a partir de") : tarif de base tant
+// que la distance est inconnue, sinon estimation complete cote client.
+function prixIndicatif(t) {
+    const base = parseFloat(t.tarif_base) || 0;
+    if (derniereDistanceKm === null) {
+        return { label: 'a partir de', montant: base };
+    }
+    const km = parseFloat(t.tarif_km) || 0;
+    const sup = document.getElementById('express').checked ? (parseFloat(t.supplement_express) || 0) : 0;
+    return { label: '', montant: Math.round(base + km * derniereDistanceKm + sup) };
+}
+
+function rendreTypes() {
+    const conteneur = document.getElementById('type-cards');
+    conteneur.innerHTML = typesLivraison.map(t => {
+        const p = prixIndicatif(t);
+        const actif = String(t.id) === String(typeSelectionneId) ? ' actif' : '';
+        const prefixe = p.label ? p.label + ' ' : '';
+        return `<div class="type-card${actif}" data-id="${t.id}">
+            <div class="tc-icon">${escapeHtml(t.icone || '🛵')}</div>
+            <div class="tc-nom">${escapeHtml(t.nom)}</div>
+            <div class="tc-prix">${prefixe}${formatMontant(p.montant)}</div>
+        </div>`;
+    }).join('');
+    conteneur.querySelectorAll('.type-card').forEach(el => {
+        el.addEventListener('click', () => {
+            typeSelectionneId = el.dataset.id;
+            rendreTypes();
+            estimer();
+        });
+    });
+}
+
 async function chargerTypes() {
     const res = await Api.get('/api/public/delivery_types.php');
     typesLivraison = res.data.types;
-    const select = document.getElementById('type_livraison');
-    select.innerHTML = typesLivraison.map(t => `<option value="${t.id}">${escapeHtml(t.nom)}</option>`).join('');
+    if (typesLivraison.length) {
+        typeSelectionneId = typesLivraison[0].id;
+    }
+    rendreTypes();
 }
 
 async function estimer() {
     const alertZone = document.getElementById('alert-zone');
     const btn = document.getElementById('btn-commander');
-    if (!coords.depart || !coords.arrivee) {
+    if (!coords.depart || !coords.arrivee || !typeSelectionneId) {
         return;
     }
     try {
         const res = await Api.post('/api/client/estimation.php', {
-            type_livraison_id: document.getElementById('type_livraison').value,
+            type_livraison_id: typeSelectionneId,
             lat_depart: coords.depart.lat,
             lng_depart: coords.depart.lng,
             lat_arrivee: coords.arrivee.lat,
             lng_arrivee: coords.arrivee.lng,
             express: document.getElementById('express').checked,
         });
+        derniereDistanceKm = parseFloat(res.data.distance_km);
         document.getElementById('estim-distance').textContent = res.data.distance_km + ' km';
         document.getElementById('estim-montant').textContent = formatMontant(res.data.montant_estime);
         btn.disabled = false;
         btn.textContent = 'Confirmer la commande';
         alertZone.innerHTML = '';
+        rendreTypes(); // rafraichit les prix des cartes avec la distance connue
     } catch (err) {
         alertZone.innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
     }
@@ -146,20 +174,19 @@ async function verifierPromo() {
     const txt = document.getElementById('estim-montant').textContent.replace(/[^\d]/g, '');
     const montant = parseInt(txt || '0', 10);
     if (!montant) {
-        zone.innerHTML = '<span style="color:var(--couleur-danger)">Estimez d\'abord la commande.</span>';
+        zone.innerHTML = '<span style="color:var(--danger)">Estimez d\'abord la commande.</span>';
         return;
     }
     try {
         const res = await Api.post('/api/client/promo_check.php', { code: code, montant: montant });
-        zone.innerHTML = '<span style="color:var(--couleur-succes)">Code applique : -'
+        zone.innerHTML = '<span style="color:var(--succes)">Code applique : -'
             + formatMontant(res.data.reduction) + ' → ' + formatMontant(res.data.nouveau_montant) + '</span>';
     } catch (err) {
-        zone.innerHTML = '<span style="color:var(--couleur-danger)">' + escapeHtml(err.message) + '</span>';
+        zone.innerHTML = '<span style="color:var(--danger)">' + escapeHtml(err.message) + '</span>';
     }
 }
 
-document.getElementById('type_livraison').addEventListener('change', estimer);
-document.getElementById('express').addEventListener('change', estimer);
+document.getElementById('express').addEventListener('change', () => { rendreTypes(); estimer(); });
 document.getElementById('mode_paiement').addEventListener('change', () => {
     const mm = ['orange_money', 'mtn_money', 'moov_money', 'wave'].includes(document.getElementById('mode_paiement').value);
     document.getElementById('zone-numero-paiement').classList.toggle('hidden', !mm);
@@ -176,7 +203,7 @@ document.getElementById('btn-commander').addEventListener('click', async () => {
     }
 
     const payload = {
-        type_livraison_id: document.getElementById('type_livraison').value,
+        type_livraison_id: typeSelectionneId,
         adresse_depart: adresseDepart,
         lat_depart: coords.depart.lat,
         lng_depart: coords.depart.lng,
