@@ -1,15 +1,25 @@
-# Ce fichier ne protege que les dossiers sensibles si le document root de
-# l'hebergement pointe par erreur sur la racine du projet au lieu du dossier
-# /public. Configuration correcte a faire dans cPanel/o2switch :
-# faire pointer le document root du domaine (ou sous-domaine) vers /public.
+# Ce fichier s'applique lorsque le document root de l'hebergement pointe sur la
+# RACINE du projet au lieu du dossier /public (cas des hebergements ou l'on ne
+# peut pas changer le document root : InfinityFree/hstn.me, certains cPanel...).
 #
-# Avec un document root correctement configure sur /public, ce fichier n'est
-# jamais lu par Apache et n'a aucun effet.
+# Il sert alors toute l'application depuis /public sans que le visiteur ait a
+# taper "/public" dans l'URL, et bloque l'acces direct aux dossiers sensibles.
+#
+# Si le document root est correctement configure sur /public (o2switch, etc.),
+# ce fichier n'est jamais lu par Apache et n'a aucun effet.
 
 Options -Indexes
 
-RewriteEngine On
-RewriteRule ^(config|includes|sql|storage)(/|$) - [F,L]
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Bloque l'acces direct aux dossiers sensibles (hors /public).
+    RewriteRule ^(config|includes|sql|storage|scripts|tests)(/|$) - [F,L]
+
+    # Sert toutes les requetes depuis /public (sauf celles deja prefixees).
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
 
 <FilesMatch "\.(env|sql|log|md)$">
     Require all denied

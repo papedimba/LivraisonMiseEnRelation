@@ -47,10 +47,12 @@ storage/        Fichiers uploades (pieces d'identite livreurs, logos boutiques, 
    - Deposer tout le contenu du depot dans un dossier hors de la racine web publique
      (ex: `~/livraison_app/`), **sauf** le contenu de `public/` qui doit etre la racine web
      (`public_html/` ou un sous-domaine dedie).
-   - Si votre hebergeur impose que tout soit dans `public_html/`, deposez l'ensemble du projet
-     tel quel : le fichier `.htaccess` a la racine bloque l'acces direct aux dossiers sensibles
-     (`config/`, `includes/`, `sql/`, `storage/`), et seul `public/` reste accessible en pointant
-     le document root vers `public_html/public`.
+   - Si votre hebergeur impose que tout soit dans `public_html/` / `htdocs/` et ne permet PAS de
+     changer le document root (InfinityFree/hstn.me, certains cPanel), deposez l'ensemble du projet
+     tel quel dans ce dossier. Le fichier `.htaccess` a la racine sert alors automatiquement toute
+     l'application depuis `/public` (reecriture interne) et bloque l'acces direct aux dossiers
+     sensibles (`config/`, `includes/`, `sql/`, `storage/`, `scripts/`, `tests/`). Accedez au site
+     par l'URL **racine** de votre domaine (ex: `https://mon-domaine.com/`), pas par `/public/`.
 
 3. **Configuration**
    - Copier `.env.example` en `.env` a la racine du projet et renseigner :
