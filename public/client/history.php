@@ -37,7 +37,11 @@ require __DIR__ . '/../includes/header.php';
                 <td>${badgeStatut(c.statut)}</td>
                 <td>${formatMontant(c.montant_estime)}</td>
                 <td>${formatDate(c.created_at)}</td>
-                <td><a href="/client/track.php?ref=${encodeURIComponent(c.reference)}">Details</a></td>
+                <td>
+                    <a href="/client/track.php?ref=${encodeURIComponent(c.reference)}">Details</a>
+                    &middot;
+                    <a href="/client/new-order.php?reorder=${encodeURIComponent(c.reference)}">Recommander</a>
+                </td>
             </tr>
         `).join('');
     } catch (e) {

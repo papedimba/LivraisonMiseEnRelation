@@ -9,6 +9,7 @@ require __DIR__ . '/../includes/header.php';
 ?>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/assets/js/chat.js"></script>
 
 <h1>Suivi de la commande <?= htmlspecialchars($reference) ?></h1>
 
@@ -22,6 +23,8 @@ require __DIR__ . '/../includes/header.php';
         <div id="map"></div>
     </div>
 </div>
+
+<div id="chat-card" class="card mt-1 hidden"></div>
 
 <div id="modal-note" class="hidden">
     <div class="card mt-1">
@@ -42,6 +45,7 @@ require __DIR__ . '/../includes/header.php';
 const reference = <?= json_encode($reference) ?>;
 let map, markerLivreur, markerDepart, markerArrivee;
 let commandeId = null;
+let chatDemarre = false;
 
 function initMap() {
     map = L.map('map').setView([7.6900, -5.0300], 13);
@@ -77,6 +81,16 @@ function renderDetails(c) {
         markerDepart = L.marker([c.lat_depart, c.lng_depart]).addTo(map).bindPopup('Depart');
         markerArrivee = L.marker([c.lat_arrivee, c.lng_arrivee]).addTo(map).bindPopup('Arrivee');
         map.fitBounds([[c.lat_depart, c.lng_depart], [c.lat_arrivee, c.lng_arrivee]]);
+    }
+
+    // Messagerie : disponible des qu'un livreur est attribue et commande active.
+    const chatCard = document.getElementById('chat-card');
+    if (c.livreur_id && c.statut !== 'annulee') {
+        chatCard.classList.remove('hidden');
+        if (!chatDemarre) {
+            Chat.init(chatCard, c.id);
+            chatDemarre = true;
+        }
     }
 
     if (c.livreur_lat && c.livreur_lng) {

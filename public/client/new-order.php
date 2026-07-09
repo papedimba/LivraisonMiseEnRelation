@@ -21,10 +21,16 @@ require __DIR__ . '/../includes/header.php';
         <div class="form-group">
             <label>Point de depart <span class="text-muted">(cliquez sur la carte, marqueur orange)</span></label>
             <input type="text" id="adresse_depart" placeholder="Adresse de depart" required>
+            <div class="fav-chips" id="fav-depart"></div>
         </div>
         <div class="form-group">
             <label>Point d'arrivee <span class="text-muted">(cliquez sur la carte, marqueur vert)</span></label>
             <input type="text" id="adresse_arrivee" placeholder="Adresse d'arrivee" required>
+            <div class="fav-chips" id="fav-arrivee"></div>
+            <div class="flex" style="margin-top:0.35rem;">
+                <button type="button" class="btn btn-ghost btn-sm" id="btn-save-arrivee">💾 Enregistrer cette adresse</button>
+                <a class="btn btn-ghost btn-sm" href="/client/addresses.php">Gerer mes adresses</a>
+            </div>
         </div>
 
         <div id="map"></div>
@@ -92,17 +98,30 @@ function initMap() {
 
     map.on('click', (e) => {
         if (!coords.depart) {
-            coords.depart = e.latlng;
-            markerDepart = L.marker(e.latlng, { title: 'Depart' }).addTo(map).bindPopup('Depart').openPopup();
-        } else if (!coords.arrivee) {
-            coords.arrivee = e.latlng;
-            markerArrivee = L.marker(e.latlng, { title: 'Arrivee' }).addTo(map).bindPopup('Arrivee').openPopup();
+            placerDepart(e.latlng.lat, e.latlng.lng);
         } else {
-            coords.arrivee = e.latlng;
-            markerArrivee.setLatLng(e.latlng);
+            placerArrivee(e.latlng.lat, e.latlng.lng);
         }
         estimer();
     });
+}
+
+function placerDepart(lat, lng) {
+    coords.depart = L.latLng(lat, lng);
+    if (!markerDepart) {
+        markerDepart = L.marker(coords.depart, { title: 'Depart' }).addTo(map).bindPopup('Depart');
+    } else {
+        markerDepart.setLatLng(coords.depart);
+    }
+}
+
+function placerArrivee(lat, lng) {
+    coords.arrivee = L.latLng(lat, lng);
+    if (!markerArrivee) {
+        markerArrivee = L.marker(coords.arrivee, { title: 'Arrivee' }).addTo(map).bindPopup('Arrivee');
+    } else {
+        markerArrivee.setLatLng(coords.arrivee);
+    }
 }
 
 async function chargerTypes() {
@@ -212,7 +231,109 @@ function redirigerApresCommande(data) {
     window.location.href = '/client/track.php?ref=' + encodeURIComponent(data.reference);
 }
 
+// --- Adresses favorites -----------------------------------------------------
+let favoris = [];
+
+async function chargerFavoris() {
+    try {
+        const res = await Api.get('/api/client/addresses_list.php');
+        favoris = res.data.adresses || [];
+    } catch (e) {
+        favoris = [];
+    }
+    rendreFavoris();
+}
+
+function rendreFavoris() {
+    const zoneDep = document.getElementById('fav-depart');
+    const zoneArr = document.getElementById('fav-arrivee');
+    if (favoris.length === 0) {
+        zoneDep.innerHTML = '';
+        zoneArr.innerHTML = '';
+        return;
+    }
+    const chips = (cible) => favoris.map(f =>
+        `<button type="button" class="fav-chip" data-id="${f.id}" data-cible="${cible}">📍 ${escapeHtml(f.libelle)}</button>`
+    ).join('');
+    zoneDep.innerHTML = chips('depart');
+    zoneArr.innerHTML = chips('arrivee');
+
+    document.querySelectorAll('.fav-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const fav = favoris.find(f => String(f.id) === chip.dataset.id);
+            if (!fav) { return; }
+            const lat = parseFloat(fav.latitude), lng = parseFloat(fav.longitude);
+            if (chip.dataset.cible === 'depart') {
+                placerDepart(lat, lng);
+                document.getElementById('adresse_depart').value = fav.adresse;
+            } else {
+                placerArrivee(lat, lng);
+                document.getElementById('adresse_arrivee').value = fav.adresse;
+            }
+            map.panTo([lat, lng]);
+            estimer();
+        });
+    });
+}
+
+document.getElementById('btn-save-arrivee').addEventListener('click', async () => {
+    if (!coords.arrivee) {
+        alert('Placez d\'abord le point d\'arrivee sur la carte.');
+        return;
+    }
+    const adresse = document.getElementById('adresse_arrivee').value.trim();
+    if (!adresse) {
+        alert('Renseignez l\'adresse d\'arrivee avant de l\'enregistrer.');
+        return;
+    }
+    const libelle = prompt('Nom de cette adresse (ex: Maison, Bureau) :', '');
+    if (libelle === null || libelle.trim() === '') { return; }
+    try {
+        await Api.post('/api/client/addresses_save.php', {
+            libelle: libelle.trim(),
+            adresse: adresse,
+            latitude: coords.arrivee.lat,
+            longitude: coords.arrivee.lng,
+        });
+        chargerFavoris();
+    } catch (err) {
+        alert(err.message);
+    }
+});
+
+// --- Recommander une commande (pre-remplissage depuis une commande passee) ---
+async function prechargerReorder() {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('reorder');
+    if (!ref) { return; }
+    try {
+        const res = await Api.get('/api/client/orders_track.php?reference=' + encodeURIComponent(ref));
+        const c = res.data.commande;
+        document.getElementById('adresse_depart').value = c.adresse_depart || '';
+        document.getElementById('adresse_arrivee').value = c.adresse_arrivee || '';
+        placerDepart(parseFloat(c.lat_depart), parseFloat(c.lng_depart));
+        placerArrivee(parseFloat(c.lat_arrivee), parseFloat(c.lng_arrivee));
+        const selType = document.getElementById('type_livraison');
+        if ([...selType.options].some(o => o.value === String(c.type_livraison_id))) {
+            selType.value = String(c.type_livraison_id);
+        }
+        document.getElementById('express').checked = (c.est_express == 1);
+        if (c.instructions) { document.getElementById('instructions').value = c.instructions; }
+        const modes = ['especes', 'orange_money', 'mtn_money', 'moov_money', 'wave'];
+        if (modes.includes(c.mode_paiement)) {
+            document.getElementById('mode_paiement').value = c.mode_paiement;
+            document.getElementById('mode_paiement').dispatchEvent(new Event('change'));
+        }
+        map.fitBounds([[c.lat_depart, c.lng_depart], [c.lat_arrivee, c.lng_arrivee]]);
+        estimer();
+    } catch (err) {
+        document.getElementById('alert-zone').innerHTML =
+            `<div class="alert alert-erreur">Impossible de recharger la commande : ${escapeHtml(err.message)}</div>`;
+    }
+}
+
 initMap();
-chargerTypes();
+chargerTypes().then(prechargerReorder);
+chargerFavoris();
 </script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>

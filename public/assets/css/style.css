@@ -384,6 +384,35 @@ tbody tr:last-child td { border-bottom: none; }
 #map { width: 100%; height: 320px; border-radius: var(--rayon-sm); border: 1px solid var(--bordure); z-index: 1; }
 .leaflet-container { border-radius: var(--rayon-sm); }
 
+/* --------------------------------------------------------- Adresses favorites */
+.fav-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.35rem 0 0.2rem; }
+.fav-chip {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    border: 1px solid var(--bordure); background: var(--carte-2);
+    border-radius: var(--rayon-pill); padding: 0.3rem 0.7rem;
+    font-size: 0.82rem; font-weight: 600; color: var(--texte); cursor: pointer;
+}
+.fav-chip:hover { border-color: var(--primaire); color: var(--primaire); }
+
+/* ------------------------------------------------------------ Messagerie chat */
+.chat-messages {
+    display: flex; flex-direction: column; gap: 0.5rem;
+    max-height: 320px; min-height: 120px; overflow-y: auto;
+    padding: 0.6rem; margin-bottom: 0.6rem;
+    background: var(--carte-2); border: 1px solid var(--bordure); border-radius: var(--rayon-sm);
+}
+.chat-msg { max-width: 78%; align-self: flex-start; }
+.chat-msg.moi { align-self: flex-end; text-align: right; }
+.chat-bulle {
+    display: inline-block; padding: 0.45rem 0.7rem; border-radius: 14px;
+    background: var(--carte); border: 1px solid var(--bordure);
+    font-size: 0.9rem; line-height: 1.35; text-align: left; word-break: break-word;
+}
+.chat-msg.moi .chat-bulle { background: var(--primaire); border-color: var(--primaire); color: #fff; }
+.chat-heure { font-size: 0.68rem; color: var(--texte-doux); margin-top: 2px; }
+.chat-input-row { display: flex; gap: 0.5rem; }
+.chat-input-row .chat-input { flex: 1; }
+
 /* ------------------------------------------------------------------ Utilities */
 .flex { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; }

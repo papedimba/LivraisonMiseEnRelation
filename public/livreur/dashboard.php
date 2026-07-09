@@ -5,6 +5,7 @@ require_page_role('livreur');
 $pageTitle = 'Courses disponibles';
 require __DIR__ . '/../includes/header.php';
 ?>
+<script src="/assets/js/chat.js"></script>
 <div class="flex-between">
     <div>
         <h1>Courses disponibles</h1>
@@ -25,6 +26,8 @@ require __DIR__ . '/../includes/header.php';
 
 <div id="course-active" class="card hidden mb-1"></div>
 
+<div id="chat-course" class="card hidden mb-1"></div>
+
 <div class="card">
     <h2 style="margin-top:0;">Autres courses disponibles</h2>
     <div class="table-wrap">
@@ -44,6 +47,7 @@ const alertZone = document.getElementById('alert-zone');
 let watchId = null;
 let courseActiveId = null;
 let derniereSignatureCourse = null; // pour ne re-render que si l'etat change
+let chatCourseId = null; // commande dont le chat est actuellement affiche
 
 document.getElementById('disponibilite').addEventListener('change', async (e) => {
     try {
@@ -88,13 +92,24 @@ async function chargerCourseActive() {
     const res = await Api.get('/api/livreur/orders_history.php');
     const active = res.data.commandes.find(c => ['acceptee', 'recuperee', 'en_cours'].includes(c.statut));
     const zone = document.getElementById('course-active');
+    const chatCard = document.getElementById('chat-course');
     if (!active) {
         zone.classList.add('hidden');
+        chatCard.classList.add('hidden');
+        Chat.stop();
+        chatCourseId = null;
         courseActiveId = null;
         derniereSignatureCourse = null;
         return;
     }
     courseActiveId = active.id;
+
+    // Messagerie avec le client : demarree une seule fois par course.
+    if (chatCourseId !== active.id) {
+        chatCard.classList.remove('hidden');
+        Chat.init(chatCard, active.id);
+        chatCourseId = active.id;
+    }
 
     // On ne reconstruit la carte que si l'etat change reellement, sinon le
     // rafraichissement automatique effacerait le code/la photo en cours de saisie.

@@ -124,6 +124,36 @@ function tests_api(string $base): void
     t_eq(200, $r['code'], 'acceptation de l\'offre de dispatch');
     t_eq($cmdDispatch, $r['body']['data']['commande_id'] ?? -1, 'commande attribuee via le dispatch');
 
+    // -- Messagerie in-app (client <-> livreur) --------------------------------
+    t_section('Messagerie in-app');
+    // cmdDispatch vient d'etre acceptee par le livreur : les deux sont participants.
+    $r = $client->post('/api/chat/send.php', ['commande_id' => $cmdDispatch, 'message' => 'Bonjour, vous etes loin ?']);
+    t_eq(201, $r['code'], 'le client envoie un message');
+
+    $r = $livreur->get('/api/chat/messages.php?commande_id=' . $cmdDispatch);
+    t_ok(count($r['body']['data']['messages'] ?? []) >= 1, 'le livreur recoit le message du client');
+
+    $r = $livreur->post('/api/chat/send.php', ['commande_id' => $cmdDispatch, 'message' => 'J\'arrive dans 5 minutes']);
+    t_eq(201, $r['code'], 'le livreur repond au client');
+
+    // Un role non participant (admin) n'accede pas a la messagerie.
+    $r = $admin->get('/api/chat/messages.php?commande_id=' . $cmdDispatch);
+    t_eq(403, $r['code'], 'acces au chat interdit hors participants (403)');
+
+    // -- Adresses favorites ----------------------------------------------------
+    t_section('Adresses favorites');
+    $r = $client->post('/api/client/addresses_save.php', [
+        'libelle' => 'Maison', 'adresse' => 'Belleville', 'latitude' => 7.69, 'longitude' => -5.03,
+    ]);
+    t_eq(201, $r['code'], 'enregistrement d\'une adresse favorite');
+    $favId = $r['body']['data']['id'] ?? 0;
+
+    $r = $client->get('/api/client/addresses_list.php');
+    t_ok(count($r['body']['data']['adresses'] ?? []) >= 1, 'liste des adresses favorites');
+
+    $r = $client->post('/api/client/addresses_delete.php', ['id' => $favId]);
+    t_eq(200, $r['code'], 'suppression d\'une adresse favorite');
+
     // -- Parametres admin (regression : placeholder reutilise) -----------------
     t_section('Parametres admin');
     $r = $admin->post('/api/admin/settings.php', ['commission_taux_defaut' => '18']);
