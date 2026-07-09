@@ -119,8 +119,16 @@ L'application est une Progressive Web App installable sur mobile et ordinateur
 - `public/assets/js/pwa.js` enregistre le service worker et affiche un bouton
   « Installer l'application » quand le navigateur le propose.
 
-Les icones se regenerent avec `php scripts/generate_icons.php`. **L'installation
-requiert HTTPS** (ou localhost en developpement).
+Les icones par defaut (monogramme "CH") se regenerent avec
+`php scripts/generate_icons.php`.
+
+Pour utiliser **votre propre logo** : deposez-le dans `public/assets/logo-source.png`
+puis lancez `php scripts/make_icons_from_logo.php`. Le script produit
+`public/assets/logo.png` (affiche dans l'en-tete) et les icones carrees 192/512.
+Pour une icone nette, ne gardez que l'embleme (sans le texte) avec l'option de
+decoupe, ex. `CROP=250,20,520,520 php scripts/make_icons_from_logo.php`.
+
+**L'installation requiert HTTPS** (ou localhost en developpement).
 
 ## Notifications push (Web Push)
 
