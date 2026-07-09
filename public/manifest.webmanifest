@@ -1,13 +1,13 @@
 {
-    "name": "LivraisonCI - Livraison & mise en relation",
-    "short_name": "LivraisonCI",
+    "name": "CityHub 225 - Connecter. Livrer. Simplifier.",
+    "short_name": "CityHub 225",
     "description": "Livraison rapide et suivi en temps reel a Bouake et en Cote d'Ivoire.",
     "start_url": "/",
     "scope": "/",
     "display": "standalone",
     "orientation": "portrait",
-    "background_color": "#f5f6fb",
-    "theme_color": "#6c4dff",
+    "background_color": "#ffffff",
+    "theme_color": "#f26522",
     "lang": "fr",
     "icons": [
         {

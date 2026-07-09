@@ -46,7 +46,7 @@ function nav_actif(string $href, string $courant): bool
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#6c4dff">
+<meta name="theme-color" content="#f26522">
 <title><?= htmlspecialchars($pageTitle ?? APP_NOM) ?> - <?= htmlspecialchars(APP_NOM) ?></title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" type="image/png" href="/assets/icons/icon-192.png">
@@ -61,7 +61,13 @@ function nav_actif(string $href, string $courant): bool
 <body>
 <header class="topbar">
     <div class="topbar-inner">
-        <a class="brand" href="<?= $role ? '#' : '/' ?>">🛵 <?= htmlspecialchars(APP_NOM) ?></a>
+        <a class="brand" href="<?= $role ? '#' : '/' ?>">
+            <?php if (is_file(APP_ROOT . '/public/assets/logo.png')): ?>
+                <img src="/assets/logo.png" alt="<?= htmlspecialchars(APP_NOM) ?>" class="brand-logo">
+            <?php else: ?>
+                🛵 <?= htmlspecialchars(APP_NOM) ?>
+            <?php endif; ?>
+        </a>
         <?php if ($role): ?>
         <nav class="topnav">
             <?php foreach ($items as [$href, $libelle, $icone]): ?>

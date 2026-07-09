@@ -1,4 +1,4 @@
-# LivraisonCI - Plateforme de livraison et de mise en relation (Bouake, Cote d'Ivoire)
+# CityHub 225 - Plateforme de livraison et de mise en relation (Bouake, Cote d'Ivoire)
 
 Application web complete (client, livreur, commercant, administrateur) pour la mise en relation
 et la livraison de repas, courses, medicaments, colis, documents, fleurs, cadeaux et plus encore.

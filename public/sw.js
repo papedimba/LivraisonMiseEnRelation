@@ -3,7 +3,7 @@
  * allant chercher son contenu aupres du serveur (modele "reveil sans payload").
  */
 // --- Cache (PWA installable + chargement rapide des ressources statiques) ---
-var CACHE = 'livraisonci-v1';
+var CACHE = 'cityhub225-v2';
 var ASSETS = [
     '/assets/css/style.css',
     '/assets/js/api.js',
@@ -76,7 +76,7 @@ self.addEventListener('push', function (event) {
             .then(function (res) {
                 var liste = (res && res.data && res.data.notifications) || [];
                 if (liste.length === 0) {
-                    return self.registration.showNotification('LivraisonCI', {
+                    return self.registration.showNotification('CityHub 225', {
                         body: 'Vous avez une nouvelle notification.',
                     });
                 }
@@ -88,7 +88,7 @@ self.addEventListener('push', function (event) {
                 });
             })
             .catch(function () {
-                return self.registration.showNotification('LivraisonCI', {
+                return self.registration.showNotification('CityHub 225', {
                     body: 'Nouvelle notification.'
                 });
             })

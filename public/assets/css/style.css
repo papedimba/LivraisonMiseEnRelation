@@ -5,23 +5,24 @@
    ============================================================================ */
 
 :root {
-    --primaire: #6c4dff;
-    --primaire-fonce: #573be0;
-    --primaire-clair: #efeaff;
-    --accent: #00c48c;
-    --accent-fonce: #00a878;
+    /* Palette CityHub 225 : orange + noir + vert (Cote d'Ivoire) */
+    --primaire: #f26522;
+    --primaire-fonce: #d8551a;
+    --primaire-clair: #fdece1;
+    --accent: #2e9e4b;
+    --accent-fonce: #26833e;
 
-    --fond: #f5f6fb;
+    --fond: #f6f6f4;
     --carte: #ffffff;
-    --carte-2: #fafaff;
-    --texte: #1a1a2e;
-    --texte-doux: #6b7185;
-    --bordure: #e9eaf2;
+    --carte-2: #fbfaf8;
+    --texte: #17181a;
+    --texte-doux: #6b6f76;
+    --bordure: #ececea;
 
-    --danger: #ff4d5e;
-    --succes: #12b76a;
+    --danger: #e5484d;
+    --succes: #2e9e4b;
     --attente: #f79009;
-    --info: #6c4dff;
+    --info: #f26522;
 
     --rayon: 18px;
     --rayon-sm: 12px;
@@ -34,16 +35,17 @@
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --primaire: #8b74ff;
-        --primaire-fonce: #7a63f0;
-        --primaire-clair: #241f45;
-        --accent: #16d9a0;
-        --fond: #101018;
-        --carte: #1a1a27;
-        --carte-2: #20202f;
-        --texte: #edeef5;
-        --texte-doux: #9a9ab0;
-        --bordure: #2a2a3c;
+        --primaire: #ff7a3c;
+        --primaire-fonce: #f26522;
+        --primaire-clair: #3a2114;
+        --accent: #3cc264;
+        --accent-fonce: #2e9e4b;
+        --fond: #121213;
+        --carte: #1c1c1f;
+        --carte-2: #232327;
+        --texte: #eef0f2;
+        --texte-doux: #9a9ea6;
+        --bordure: #2c2c30;
         --ombre: 0 6px 24px rgba(0, 0, 0, 0.4);
         --ombre-forte: 0 12px 32px rgba(0, 0, 0, 0.5);
     }
@@ -98,7 +100,10 @@ h2 { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
     color: var(--texte);
     letter-spacing: -0.02em;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
 }
+.brand-logo { height: 38px; width: auto; display: block; }
 .topnav {
     display: flex;
     gap: 0.35rem;

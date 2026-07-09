@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/env.php';
 
-define('APP_NOM', env('APP_NOM', 'LivraisonCI'));
+define('APP_NOM', env('APP_NOM', 'CityHub 225'));
 define('APP_ENV', env('APP_ENV', 'production'));
 define('APP_URL', env('APP_URL', ''));
 define('APP_ROOT', dirname(__DIR__));

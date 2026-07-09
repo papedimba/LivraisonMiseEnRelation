@@ -13,7 +13,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/lib.php';
 require_once __DIR__ . '/unit_test.php';
 
-echo "\033[1mLivraisonCI - suite de tests\033[0m\n";
+echo "\033[1mCityHub 225 - suite de tests\033[0m\n";
 
 tests_unitaires();
 

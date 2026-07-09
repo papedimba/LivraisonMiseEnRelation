@@ -44,7 +44,7 @@ foreach ($historique as $ligne) {
 $messagesClaude[] = ['role' => 'user', 'content' => $message];
 
 $systemPrompt = <<<PROMPT
-Tu es l'assistant du service client de LivraisonCI, une plateforme de livraison et de mise en relation
+Tu es l'assistant du service client de CityHub 225, une plateforme de livraison et de mise en relation
 entre clients, livreurs et commercants a Bouake et en Cote d'Ivoire. Tu aides les utilisateurs a :
 - comprendre comment passer une commande, suivre une livraison, ou changer de mode de paiement (especes,
   Orange Money, MTN Mobile Money, Moov Money, Wave) ;

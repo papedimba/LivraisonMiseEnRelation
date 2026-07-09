@@ -2,38 +2,66 @@
 declare(strict_types=1);
 
 /**
- * Genere les icones PWA (colis blanc sur fond violet) dans
- * public/assets/icons/. A relancer si l'on change la charte graphique.
+ * Genere les icones PWA de CityHub 225 (monogramme "CH" sur colis, couleurs
+ * orange / noir / vert). A relancer si l'on change la charte graphique.
  *   php scripts/generate_icons.php
+ *
+ * Astuce : pour utiliser votre vrai logo, deposez-le en PNG carre a
+ *   public/assets/logo.png (affiche dans l'en-tete) et remplacez au besoin
+ *   public/assets/icons/icon-192.png et icon-512.png par des versions carrees
+ *   de votre logo.
  */
+
+function police(): string
+{
+    foreach ([
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+        '/Library/Fonts/Arial Bold.ttf',
+    ] as $f) {
+        if (is_file($f)) {
+            return $f;
+        }
+    }
+    return '';
+}
 
 function generer_icone(int $taille, string $chemin): void
 {
     $img = imagecreatetruecolor($taille, $taille);
     imagesavealpha($img, true);
 
-    $violet = imagecolorallocate($img, 0x6c, 0x4d, 0xff);
-    $violetFonce = imagecolorallocate($img, 0x57, 0x3b, 0xe0);
+    $orange = imagecolorallocate($img, 0xf2, 0x65, 0x22);
+    $noir = imagecolorallocate($img, 0x17, 0x18, 0x1a);
     $blanc = imagecolorallocate($img, 0xff, 0xff, 0xff);
+    $vert = imagecolorallocate($img, 0x2e, 0x9e, 0x4b);
 
-    imagefilledrectangle($img, 0, 0, $taille, $taille, $violet);
+    // Fond orange.
+    imagefilledrectangle($img, 0, 0, $taille, $taille, $orange);
 
-    // Colis (carre blanc centre).
+    // Colis noir centre (comme le logo).
     $c = $taille / 2;
-    $demi = (int) ($taille * 0.24);
+    $demi = (int) ($taille * 0.30);
     $x1 = (int) ($c - $demi);
     $y1 = (int) ($c - $demi);
     $x2 = (int) ($c + $demi);
     $y2 = (int) ($c + $demi);
-    imagefilledrectangle($img, $x1, $y1, $x2, $y2, $blanc);
+    imagefilledrectangle($img, $x1, $y1, $x2, $y2, $noir);
 
-    // Ruban adhesif (croix violette) pour l'effet colis.
-    $ep = max(2, (int) ($taille * 0.035));
-    imagefilledrectangle($img, (int) ($c - $ep / 2), $y1, (int) ($c + $ep / 2), $y2, $violet);
-    imagefilledrectangle($img, $x1, (int) ($c - $ep / 2), $x2, (int) ($c + $ep / 2), $violet);
+    // Bande verte en bas (rappel du drapeau / accent).
+    imagefilledrectangle($img, $x1, (int) ($y2 - $taille * 0.06), $x2, $y2, $vert);
 
-    // Rabat superieur (ligne du haut du colis).
-    imagefilledrectangle($img, $x1, $y1, $x2, (int) ($y1 + $taille * 0.05), $violetFonce);
+    // Monogramme "CH".
+    $font = police();
+    if ($font !== '') {
+        $tailleTexte = (int) ($taille * 0.26);
+        $texte = 'CH';
+        $bbox = imagettfbbox($tailleTexte, 0, $font, $texte);
+        $largeur = $bbox[2] - $bbox[0];
+        $hauteur = $bbox[1] - $bbox[7];
+        $tx = (int) ($c - $largeur / 2);
+        $ty = (int) ($c + $hauteur / 2 - $taille * 0.02);
+        imagettftext($img, $tailleTexte, 0, $tx, $ty, $blanc, $font, $texte);
+    }
 
     imagepng($img, $chemin);
     imagedestroy($img);
@@ -43,4 +71,4 @@ $base = __DIR__ . '/../public/assets/icons';
 generer_icone(192, $base . '/icon-192.png');
 generer_icone(512, $base . '/icon-512.png');
 
-echo "Icones generees dans public/assets/icons/\n";
+echo "Icones CityHub 225 generees dans public/assets/icons/\n";

@@ -422,7 +422,7 @@ INSERT INTO parametres (cle, valeur) VALUES
 ('commission_taux_defaut', '15'),
 ('devise', 'FCFA'),
 ('anthropic_model', 'claude-sonnet-4-20250514'),
-('app_nom', 'LivraisonCI'),
+('app_nom', 'CityHub 225'),
 ('ville_defaut', 'Bouake'),
 ('relance_commande_minutes', '3'),
 ('annulation_auto_minutes', '20'),

@@ -1,6 +1,7 @@
 </main>
 <footer class="footer">
-    <p>&copy; <?= date('Y') ?> <?= htmlspecialchars(APP_NOM) ?> - Livraison &amp; mise en relation a Bouake, Cote d'Ivoire.</p>
+    <p><strong><?= htmlspecialchars(APP_NOM) ?></strong> &middot; Connecter. Livrer. Simplifier.</p>
+    <p>&copy; <?= date('Y') ?> - Livraison &amp; mise en relation a Bouake et en Cote d'Ivoire.</p>
 </footer>
 <?php if (!empty($items)): ?>
 <nav class="bottomnav">
