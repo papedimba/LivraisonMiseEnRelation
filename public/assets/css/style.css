@@ -337,6 +337,22 @@ input[type="checkbox"], input[type="file"] { width: auto; }
 .tag-danger { background: rgba(255, 77, 94, 0.14); color: var(--danger); }
 .tag-info { background: var(--primaire-clair); color: var(--primaire); }
 
+/* ------------------------------------------------------------------- Modale */
+.modal-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 1.5rem 1rem; overflow-y: auto;
+}
+.modal-box {
+    background: var(--carte); border-radius: var(--rayon);
+    box-shadow: var(--ombre-forte); width: 100%; max-width: 520px;
+    padding: 1.25rem; margin: auto;
+}
+.modal-box h2 { margin-top: 0; }
+.modal-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.modal-close { background: none; border: none; font-size: 1.5rem; line-height: 1; cursor: pointer; color: var(--texte-doux); }
+
 /* -------------------------------------------------------------------- Tables */
 .table-wrap {
     overflow-x: auto;

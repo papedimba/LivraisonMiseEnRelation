@@ -16,6 +16,7 @@ function tests_api(string $base): void
     $r = $admin->post('/api/auth/login.php', ['email' => 'admin@livraisonci.local', 'password' => 'ChangeMoi123!']);
     t_eq(200, $r['code'], 'login admin HTTP 200');
     t_eq('admin', $r['body']['data']['role'] ?? null, 'role admin');
+    $adminId = $r['body']['data']['user_id'] ?? 0;
 
     $r = $admin->post('/api/auth/login.php', ['email' => 'admin@livraisonci.local', 'password' => 'mauvais']);
     t_eq(401, $r['code'], 'mauvais mot de passe -> 401');
@@ -153,6 +154,43 @@ function tests_api(string $base): void
 
     $r = $client->post('/api/client/addresses_delete.php', ['id' => $favId]);
     t_eq(200, $r['code'], 'suppression d\'une adresse favorite');
+
+    // -- Administration des comptes (creation / edition / droits) --------------
+    t_section('Administration des comptes');
+    $emailNew = "cree{$suffix}@ex.com";
+    $r = $admin->post('/api/admin/users_create.php', [
+        'role' => 'client', 'nom' => 'Cree', 'prenom' => 'ParAdmin',
+        'email' => $emailNew, 'telephone' => "07{$suffix}33", 'password' => 'MotDePasse1', 'statut' => 'actif',
+    ]);
+    t_eq(201, $r['code'], 'l\'admin cree un compte utilisateur');
+    $newId = $r['body']['data']['user_id'] ?? 0;
+    t_ok($newId > 0, 'identifiant du compte cree');
+
+    // Le compte cree par l'admin peut se connecter immediatement.
+    $nouveau = new TestHttp($base);
+    $r = $nouveau->post('/api/auth/login.php', ['email' => $emailNew, 'password' => 'MotDePasse1']);
+    t_eq(200, $r['code'], 'le compte cree par l\'admin peut se connecter');
+
+    // Attribution de droits : le client devient livreur actif.
+    $r = $admin->post('/api/admin/users_update.php', [
+        'user_id' => $newId, 'role' => 'livreur', 'statut' => 'actif', 'type_vehicule' => 'moto',
+    ]);
+    t_eq(200, $r['code'], 'l\'admin change le role en livreur');
+
+    $r = $admin->get('/api/admin/user_get.php?user_id=' . $newId);
+    t_eq('livreur', $r['body']['data']['utilisateur']['role'] ?? null, 'le nouveau role est applique');
+    t_ok(($r['body']['data']['utilisateur']['livreur'] ?? null) !== null, 'la fiche livreur est creee au changement de role');
+
+    // Garde-fou : un admin ne peut pas se retirer ses propres droits.
+    $r = $admin->post('/api/admin/users_update.php', ['user_id' => $adminId, 'role' => 'client']);
+    t_eq(409, $r['code'], 'un admin ne peut pas se retrograder lui-meme');
+
+    // Email deja utilise -> conflit.
+    $r = $admin->post('/api/admin/users_create.php', [
+        'role' => 'client', 'nom' => 'X', 'prenom' => 'Y',
+        'email' => $emailNew, 'telephone' => "07{$suffix}44", 'password' => 'MotDePasse1',
+    ]);
+    t_eq(409, $r['code'], 'creation avec un email deja utilise rejetee');
 
     // -- Parametres admin (regression : placeholder reutilise) -----------------
     t_section('Parametres admin');
