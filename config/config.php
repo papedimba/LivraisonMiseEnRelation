@@ -68,6 +68,43 @@ if (APP_ENV === 'production') {
     ini_set('display_errors', '1');
 }
 
+// Les requetes API doivent toujours repondre en JSON, meme en cas d'erreur
+// fatale (sinon le front recoit un 500 nu et affiche "Reponse inattendue").
+$estRequeteApi = static function (): bool {
+    $uri = $_SERVER['REQUEST_URI'] ?? '';
+    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+    return str_contains($uri, '/api/') || str_contains($accept, 'application/json');
+};
+
+set_exception_handler(function (Throwable $e) use ($estRequeteApi): void {
+    error_log('Exception non capturee : ' . $e->getMessage());
+    if (!headers_sent()) {
+        http_response_code(500);
+    }
+    if ($estRequeteApi()) {
+        header('Content-Type: application/json; charset=utf-8');
+        $message = APP_ENV === 'production' ? 'Erreur serveur.' : $e->getMessage();
+        echo json_encode(['success' => false, 'message' => $message, 'errors' => []], JSON_UNESCAPED_UNICODE);
+    } else {
+        echo 'Une erreur serveur est survenue.';
+    }
+    exit;
+});
+
+register_shutdown_function(function () use ($estRequeteApi): void {
+    $err = error_get_last();
+    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        if (!headers_sent()) {
+            http_response_code(500);
+        }
+        if ($estRequeteApi()) {
+            header('Content-Type: application/json; charset=utf-8');
+            $message = APP_ENV === 'production' ? 'Erreur serveur.' : $err['message'];
+            echo json_encode(['success' => false, 'message' => $message, 'errors' => []], JSON_UNESCAPED_UNICODE);
+        }
+    }
+});
+
 date_default_timezone_set('Africa/Abidjan');
 
 if (session_status() === PHP_SESSION_NONE) {
