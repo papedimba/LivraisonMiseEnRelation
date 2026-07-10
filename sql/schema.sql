@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS livreur_details (
     carte_grise_path VARCHAR(255) DEFAULT NULL,
     statut_validation ENUM('en_attente','valide','rejete') NOT NULL DEFAULT 'en_attente',
     motif_rejet VARCHAR(255) DEFAULT NULL,
-    disponibilite ENUM('en_ligne','hors_ligne') NOT NULL DEFAULT 'hors_ligne',
+    disponibilite ENUM('en_ligne','hors_ligne','pause') NOT NULL DEFAULT 'hors_ligne',
     latitude DECIMAL(10,7) DEFAULT NULL,
     longitude DECIMAL(10,7) DEFAULT NULL,
     derniere_position_at DATETIME DEFAULT NULL,

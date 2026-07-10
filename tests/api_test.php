@@ -155,6 +155,23 @@ function tests_api(string $base): void
     $r = $client->post('/api/client/addresses_delete.php', ['id' => $favId]);
     t_eq(200, $r['code'], 'suppression d\'une adresse favorite');
 
+    // -- Suivi de la flotte ----------------------------------------------------
+    t_section('Suivi de la flotte');
+    // Le livreur vient d'accepter cmdDispatch : il doit apparaitre "en route".
+    $r = $admin->get('/api/admin/fleet.php');
+    t_eq(200, $r['code'], 'l\'admin consulte la flotte');
+    $flotte = $r['body']['data']['livreurs'] ?? [];
+    $moi = null;
+    foreach ($flotte as $l) {
+        if (($l['id'] ?? 0) === $livreurId) { $moi = $l; break; }
+    }
+    t_ok($moi !== null, 'le livreur actif figure dans la flotte');
+    t_eq('en_route', $moi['statut'] ?? null, 'le livreur sur une course est "en route"');
+
+    // Passage en pause : le statut de flotte doit suivre une fois la course finie.
+    $r = $livreur->post('/api/livreur/toggle_availability.php', ['disponibilite' => 'pause']);
+    t_eq(200, $r['code'], 'le livreur peut se mettre en pause');
+
     // -- Administration des comptes (creation / edition / droits) --------------
     t_section('Administration des comptes');
     $emailNew = "cree{$suffix}@ex.com";

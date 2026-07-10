@@ -16,6 +16,7 @@ require __DIR__ . '/../includes/header.php';
         <select id="disponibilite">
             <option value="hors_ligne">Hors ligne</option>
             <option value="en_ligne">En ligne</option>
+            <option value="pause">En pause</option>
         </select>
     </div>
 </div>
@@ -52,10 +53,13 @@ let chatCourseId = null; // commande dont le chat est actuellement affiche
 document.getElementById('disponibilite').addEventListener('change', async (e) => {
     try {
         await Api.post('/api/livreur/toggle_availability.php', { disponibilite: e.target.value });
-        if (e.target.value === 'en_ligne') {
+        // On garde le suivi de position en ligne ET en pause (l'admin voit la
+        // flotte), on ne l'arrete qu'une fois hors ligne.
+        if (e.target.value === 'en_ligne' || e.target.value === 'pause') {
             demarrerSuiviPosition();
         } else if (watchId) {
             navigator.geolocation.clearWatch(watchId);
+            watchId = null;
         }
         chargerCommandes();
     } catch (err) {
@@ -82,7 +86,7 @@ async function chargerDisponibilite() {
         const res = await Api.get('/api/livreur/profile.php');
         const dispo = res.data.disponibilite || 'hors_ligne';
         document.getElementById('disponibilite').value = dispo;
-        if (dispo === 'en_ligne') {
+        if (dispo === 'en_ligne' || dispo === 'pause') {
             demarrerSuiviPosition();
         }
     } catch (err) { /* on garde la valeur par defaut */ }

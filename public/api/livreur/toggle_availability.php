@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $body = request_body();
 $disponibilite = clean_str(input($body, 'disponibilite', ''));
-if (!in_array($disponibilite, ['en_ligne', 'hors_ligne'], true)) {
+if (!in_array($disponibilite, ['en_ligne', 'hors_ligne', 'pause'], true)) {
     Response::error('Valeur de disponibilite invalide.');
 }
 

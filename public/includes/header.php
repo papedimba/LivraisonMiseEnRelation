@@ -28,6 +28,7 @@ $menus = [
     'admin' => [
         ['/admin/dashboard.php', 'Tableau', '📊'],
         ['/admin/users.php', 'Users', '👥'],
+        ['/admin/fleet.php', 'Flotte', '🛰️'],
         ['/admin/validations.php', 'Valider', '✅'],
         ['/admin/orders.php', 'Commandes', '🧾'],
         ['/admin/marketing.php', 'Marketing', '🎯'],
