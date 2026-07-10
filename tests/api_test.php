@@ -288,6 +288,34 @@ function tests_api(string $base): void
 
     $admin->post('/api/admin/settings.php', ['surge_actif' => '0']); // ne pas polluer la suite
 
+    // -- Cartographie collaborative --------------------------------------------
+    t_section('Cartographie collaborative');
+    $r = $client->post('/api/map/point_add.php', [
+        'nom' => "Repere {$suffix}", 'categorie' => 'repere', 'latitude' => 7.695, 'longitude' => -5.035,
+    ]);
+    t_eq(201, $r['code'], 'un client ajoute un point de repere');
+    t_eq('en_attente', $r['body']['data']['statut'] ?? null, 'point en attente de moderation');
+    $pid = $r['body']['data']['id'] ?? 0;
+
+    $r = $client->get('/api/public/map_points.php?bbox=7.6,-5.1,7.8,-5.0');
+    $ids = array_column($r['body']['data']['points'] ?? [], 'id');
+    t_ok(!in_array($pid, $ids), 'point non valide invisible sur la carte publique');
+
+    $r = $admin->get('/api/admin/points_pending.php');
+    $ids = array_column($r['body']['data']['points'] ?? [], 'id');
+    t_ok(in_array($pid, $ids), 'le point figure dans la moderation admin');
+
+    $r = $admin->post('/api/admin/points_moderate.php', ['id' => $pid, 'decision' => 'valide']);
+    t_eq(200, $r['code'], 'admin valide le point');
+
+    $r = $client->get('/api/public/map_points.php?bbox=7.6,-5.1,7.8,-5.0');
+    $ids = array_column($r['body']['data']['points'] ?? [], 'id');
+    t_ok(in_array($pid, $ids), 'point valide visible sur la carte publique');
+
+    $r = $livreur->post('/api/map/point_vote.php', ['point_id' => $pid, 'type' => 'confirme']);
+    t_eq(200, $r['code'], 'un utilisateur confirme le point');
+    t_eq(1, $r['body']['data']['confirmations'] ?? 0, 'une confirmation comptee');
+
     // -- Securite --------------------------------------------------------------
     t_section('Controle d\'acces');
     $anon = new TestHttp($base);

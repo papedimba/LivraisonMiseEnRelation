@@ -17,12 +17,23 @@ require __DIR__ . '/../includes/header.php';
     </div>
 </div>
 
-<div class="card">
+<div class="card mb-1">
     <h2>Commercants</h2>
     <div class="table-wrap">
         <table>
             <thead><tr><th>Boutique</th><th>Categorie</th><th>Contact</th><th></th></tr></thead>
             <tbody id="liste-commercants"><tr><td colspan="4" class="text-muted">Chargement...</td></tr></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Points de repere (cartographie collaborative)</h2>
+    <p class="text-muted">Contributions en attente et points valides fortement signales.</p>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Nom</th><th>Categorie</th><th>Auteur</th><th>Etat</th><th>Votes</th><th></th></tr></thead>
+            <tbody id="liste-points"><tr><td colspan="6" class="text-muted">Chargement...</td></tr></tbody>
         </table>
     </div>
 </div>
@@ -100,7 +111,39 @@ async function chargerCommercants() {
     });
 }
 
+async function chargerPoints() {
+    const tbody = document.getElementById('liste-points');
+    const res = await Api.get('/api/admin/points_pending.php');
+    const points = res.data.points;
+    tbody.innerHTML = points.length ? points.map(p => `
+        <tr>
+            <td><strong>${escapeHtml(p.nom)}</strong>${p.description ? `<br><span class="text-muted" style="font-size:0.8rem;">${escapeHtml(p.description)}</span>` : ''}</td>
+            <td>${escapeHtml(p.categorie)}</td>
+            <td>${p.auteur_prenom ? escapeHtml(p.auteur_prenom + ' ' + p.auteur_nom) : '<span class="text-muted">—</span>'}</td>
+            <td><span class="tag ${p.statut === 'en_attente' ? 'tag-attente' : 'tag-danger'}">${escapeHtml(p.statut)}</span></td>
+            <td>👍 ${p.confirmations} · 🚩 ${p.signalements}</td>
+            <td>
+                <a href="https://www.openstreetmap.org/?mlat=${p.latitude}&mlon=${p.longitude}#map=17/${p.latitude}/${p.longitude}" target="_blank" class="btn btn-ghost btn-sm">Voir</a>
+                <button class="btn btn-sm" data-id="${p.id}" data-decision="valide">Valider</button>
+                <button class="btn btn-sm btn-danger" data-id="${p.id}" data-decision="rejete">Rejeter</button>
+            </td>
+        </tr>
+    `).join('') : '<tr><td colspan="6" class="text-muted">Aucun point a moderer.</td></tr>';
+
+    tbody.querySelectorAll('button[data-decision]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            try {
+                await Api.post('/api/admin/points_moderate.php', { id: btn.dataset.id, decision: btn.dataset.decision });
+                chargerPoints();
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+    });
+}
+
 chargerLivreurs();
 chargerCommercants();
+chargerPoints();
 </script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>

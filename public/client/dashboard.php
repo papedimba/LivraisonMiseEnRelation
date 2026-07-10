@@ -25,6 +25,10 @@ require __DIR__ . '/../includes/header.php';
         <h2>💬 Assistance</h2>
         <p class="text-muted">Discutez avec notre assistant ou envoyez une reclamation.</p>
     </a>
+    <a class="card" href="/client/map.php">
+        <h2>🗺️ Carte collaborative</h2>
+        <p class="text-muted">Ajoutez et confirmez les points de repere de votre quartier.</p>
+    </a>
 </div>
 
 <div class="card">
