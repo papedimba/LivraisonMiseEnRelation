@@ -337,6 +337,29 @@ input[type="checkbox"], input[type="file"] { width: auto; }
 .tag-danger { background: rgba(255, 77, 94, 0.14); color: var(--danger); }
 .tag-info { background: var(--primaire-clair); color: var(--primaire); }
 
+/* ---------------------------------------------------------------- Graphiques */
+.chart-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart-svg .barre { fill: var(--primaire); transition: opacity .12s; }
+.chart-svg .barre:hover { opacity: 0.75; cursor: pointer; }
+.chart-svg .grille { stroke: var(--bordure); stroke-width: 1; }
+.chart-svg .axe-txt { fill: var(--texte-doux); font-size: 11px; }
+
+/* Barres horizontales (repartitions), une seule teinte = magnitude. */
+.hbar-row { display: grid; grid-template-columns: 130px 1fr auto; align-items: center; gap: 0.6rem; padding: 0.3rem 0; }
+.hbar-label { font-size: 0.85rem; color: var(--texte); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hbar-track { background: var(--carte-2); border-radius: var(--rayon-pill); height: 12px; overflow: hidden; }
+.hbar-fill { background: var(--primaire); height: 100%; border-radius: var(--rayon-pill); min-width: 3px; }
+.hbar-val { font-size: 0.82rem; font-weight: 700; color: var(--texte); }
+
+/* Info-bulle de graphique. */
+.chart-tip {
+    position: fixed; z-index: 200; pointer-events: none;
+    background: var(--texte); color: var(--carte);
+    padding: 0.35rem 0.55rem; border-radius: 8px; font-size: 0.78rem;
+    white-space: nowrap; box-shadow: var(--ombre-forte); opacity: 0; transition: opacity .1s;
+}
+.periode-btns { display: flex; gap: 0.35rem; }
+
 /* ------------------------------------------------------------------- Modale */
 .modal-overlay {
     position: fixed; inset: 0; z-index: 100;

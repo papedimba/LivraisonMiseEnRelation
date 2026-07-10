@@ -209,6 +209,17 @@ function tests_api(string $base): void
     ]);
     t_eq(409, $r['code'], 'creation avec un email deja utilise rejetee');
 
+    // -- Analytics admin -------------------------------------------------------
+    t_section('Analytics admin');
+    $r = $admin->get('/api/admin/analytics.php?jours=30');
+    t_eq(200, $r['code'], 'l\'admin consulte les analytics');
+    t_eq(30, $r['body']['data']['jours'] ?? null, 'periode de 30 jours');
+    t_ok(count($r['body']['data']['serie'] ?? []) === 30, 'serie journaliere complete (30 points)');
+    t_ok(($r['body']['data']['resume']['total'] ?? 0) >= 1, 'au moins une commande comptee sur la periode');
+    // Periode invalide -> repli sur 30 jours.
+    $r = $admin->get('/api/admin/analytics.php?jours=999');
+    t_eq(30, $r['body']['data']['jours'] ?? null, 'periode invalide repliee sur 30 jours');
+
     // -- Parametres admin (regression : placeholder reutilise) -----------------
     t_section('Parametres admin');
     $r = $admin->post('/api/admin/settings.php', ['commission_taux_defaut' => '18']);
