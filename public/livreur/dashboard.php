@@ -29,6 +29,8 @@ require __DIR__ . '/../includes/header.php';
 
 <div id="chat-course" class="card hidden mb-1"></div>
 
+<div id="notation-client" class="card hidden mb-1" style="border:2px solid var(--accent);"></div>
+
 <div class="card">
     <h2 style="margin-top:0;">Autres courses disponibles</h2>
     <div class="table-wrap">
@@ -142,9 +144,11 @@ async function chargerCourseActive() {
             <button id="btn-livrer" class="btn">Confirmer la livraison</button>
         </div>` : '';
 
+    const noteClient = active.client_note ? ` · ⭐ ${Number(active.client_note).toFixed(1)}` : '';
     zone.innerHTML = `
         <h2>Course en cours : ${escapeHtml(active.reference)}</h2>
         <p>${badgeStatut(active.statut)} - ${escapeHtml(active.adresse_depart)} &rarr; ${escapeHtml(active.adresse_arrivee)}</p>
+        <p><strong>Client :</strong> ${escapeHtml(active.client_prenom || '')} ${escapeHtml(active.client_nom || '')}${noteClient}</p>
         <p><strong>Montant :</strong> ${formatMontant(active.montant_estime)}</p>
         <div class="flex">
             <a class="btn btn-secondaire" href="/livreur/navigation.php?commande_id=${active.id}">🧭 Naviguer</a>
@@ -223,6 +227,71 @@ async function chargerCommandes() {
     }
 }
 
+// --- Notation du client par le livreur (notation double sens) ---------------
+let notationCommandeId = null; // commande dont le formulaire est affiche
+
+async function chargerNotationClient() {
+    const zone = document.getElementById('notation-client');
+    try {
+        const res = await Api.get('/api/livreur/pending_rating.php');
+        const c = res.data.a_noter;
+        if (!c) {
+            zone.classList.add('hidden');
+            notationCommandeId = null;
+            return;
+        }
+        // Ne re-render pas si le formulaire de cette commande est deja affiche
+        // (sinon la saisie en cours serait effacee a chaque rafraichissement).
+        if (notationCommandeId === c.id) { return; }
+        notationCommandeId = c.id;
+
+        const noteActuelle = c.nombre_evaluations_client > 0
+            ? `note actuelle ⭐ ${Number(c.note_client).toFixed(1)} (${c.nombre_evaluations_client})`
+            : 'client pas encore note';
+        zone.classList.remove('hidden');
+        zone.innerHTML = `
+            <h2 style="margin-top:0;">Noter le client — ${escapeHtml(c.reference)}</h2>
+            <p>Comment s'est passee la livraison avec <strong>${escapeHtml(c.client_prenom)} ${escapeHtml(c.client_nom)}</strong> ? <span class="text-muted">(${noteActuelle})</span></p>
+            <div class="form-group">
+                <label for="note-client">Note</label>
+                <select id="note-client">
+                    <option value="5">5 - Excellent</option>
+                    <option value="4">4 - Bien</option>
+                    <option value="3">3 - Correct</option>
+                    <option value="2">2 - Moyen</option>
+                    <option value="1">1 - Mauvais</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="commentaire-client">Commentaire (optionnel)</label>
+                <textarea id="commentaire-client" placeholder="Ex: adresse facile a trouver, client ponctuel..."></textarea>
+            </div>
+            <div class="flex">
+                <button id="btn-noter-client" class="btn btn-secondaire">Envoyer</button>
+                <button id="btn-ignorer-note" class="btn btn-ghost">Plus tard</button>
+            </div>`;
+
+        document.getElementById('btn-noter-client').addEventListener('click', async () => {
+            try {
+                await Api.post('/api/livreur/rate_client.php', {
+                    commande_id: c.id,
+                    note: document.getElementById('note-client').value,
+                    commentaire: document.getElementById('commentaire-client').value.trim(),
+                });
+                notationCommandeId = null;
+                chargerNotationClient();
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+        document.getElementById('btn-ignorer-note').addEventListener('click', () => {
+            zone.classList.add('hidden'); // reapparaitra au prochain chargement de page
+        });
+    } catch (err) {
+        zone.classList.add('hidden');
+    }
+}
+
 // --- Offre de dispatch (course proposee au livreur le plus proche) ----------
 let offreCourante = null;
 
@@ -275,6 +344,7 @@ chargerDisponibilite();
 chargerOffre();
 chargerCourseActive();
 chargerCommandes();
-setInterval(() => { chargerOffre(); chargerCourseActive(); chargerCommandes(); }, 5000);
+chargerNotationClient();
+setInterval(() => { chargerOffre(); chargerCourseActive(); chargerCommandes(); chargerNotationClient(); }, 5000);
 </script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>

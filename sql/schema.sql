@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS users (
     adresse VARCHAR(255) DEFAULT NULL,
     statut ENUM('actif','suspendu','en_attente') NOT NULL DEFAULT 'actif',
     email_verifie TINYINT(1) NOT NULL DEFAULT 0,
+    note_client DECIMAL(3,2) NOT NULL DEFAULT 5.00,
+    nombre_evaluations_client INT UNSIGNED NOT NULL DEFAULT 0,
     derniere_connexion DATETIME DEFAULT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -268,6 +270,22 @@ CREATE TABLE IF NOT EXISTS evaluations (
     UNIQUE KEY uq_eval_commande (commande_id),
     KEY idx_eval_livreur (livreur_id),
     KEY idx_eval_commercant (commercant_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------------------------------------------------------
+-- Evaluations du client par le livreur (notation a double sens)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS evaluations_client (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    commande_id INT UNSIGNED NOT NULL,
+    livreur_id INT UNSIGNED NOT NULL,
+    client_id INT UNSIGNED NOT NULL,
+    note TINYINT UNSIGNED NOT NULL,
+    commentaire VARCHAR(500) DEFAULT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_evalcli_commande FOREIGN KEY (commande_id) REFERENCES commandes(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_evalcli_commande (commande_id),
+    KEY idx_evalcli_client (client_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ----------------------------------------------------------------------------

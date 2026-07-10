@@ -91,6 +91,14 @@ function tests_api(string $base): void
     $r = $client->post('/api/client/rate.php', ['commande_id' => $commandeId, 'note' => 5, 'commentaire' => 'Parfait']);
     t_eq(200, $r['code'], 'evaluation du livreur');
 
+    // Notation a double sens : le livreur note aussi le client.
+    $r = $livreur->get('/api/livreur/pending_rating.php');
+    t_ok(($r['body']['data']['a_noter']['id'] ?? null) == $commandeId, 'une course a noter est proposee au livreur');
+    $r = $livreur->post('/api/livreur/rate_client.php', ['commande_id' => $commandeId, 'note' => 4, 'commentaire' => 'Client ponctuel']);
+    t_eq(200, $r['code'], 'le livreur note le client');
+    $r = $livreur->post('/api/livreur/rate_client.php', ['commande_id' => $commandeId, 'note' => 4]);
+    t_eq(409, $r['code'], 'double notation du meme client rejetee');
+
     // -- Codes promo -----------------------------------------------------------
     t_section('Codes promo');
     $codePromo = 'TEST' . $suffix;
