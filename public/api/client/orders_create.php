@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/Response.php';
 require_once __DIR__ . '/../../../includes/Auth.php';
 require_once __DIR__ . '/../../../includes/PaymentGateway.php';
+require_once __DIR__ . '/../../../includes/pricing.php';
 
 $clientId = Auth::requireRole('client');
 
@@ -55,6 +56,10 @@ $instructions = clean_str(input($body, 'instructions', ''));
 
 $distanceKm = haversine_distance_km($latDepart, $lngDepart, $latArrivee, $lngArrivee);
 $montantLivraison = estimer_cout((float) $type['tarif_base'], (float) $type['tarif_km'], $distanceKm, $express, (float) $type['supplement_express']);
+
+// Tarification dynamique : meme regle qu'a l'estimation.
+$surge = surge_multiplicateur($db);
+$montantLivraison = appliquer_surge($montantLivraison, $surge);
 
 $produits = input($body, 'produits', []);
 $montantProduits = 0.0;

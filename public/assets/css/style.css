@@ -397,6 +397,7 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .alert-erreur { background: rgba(255, 77, 94, 0.12); color: var(--danger); }
 .alert-succes { background: rgba(18, 183, 106, 0.12); color: var(--succes); }
+.alert-info { background: var(--primaire-clair); color: var(--primaire-fonce); }
 
 /* ---------------------------------------------------------------------- Auth */
 .auth-wrap { max-width: 440px; margin: 1.5rem auto; padding: 0 1rem; }

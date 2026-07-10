@@ -78,6 +78,47 @@ require __DIR__ . '/../includes/header.php';
 </div>
 
 <div class="card mt-1">
+    <h2>Tarification dynamique (surge)</h2>
+    <div id="alert-zone-4"></div>
+    <div class="form-group">
+        <label><input type="checkbox" id="surge_actif" style="width:auto;display:inline-block;"> Activer la tarification dynamique</label>
+    </div>
+    <div class="grid grid-3">
+        <div class="form-group">
+            <label for="surge_manuel">Majoration manuelle (x)</label>
+            <input type="number" id="surge_manuel" min="1" max="5" step="0.1">
+        </div>
+        <div class="form-group">
+            <label for="surge_max">Majoration maximale (x)</label>
+            <input type="number" id="surge_max" min="1" max="5" step="0.1">
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;">
+            <label><input type="checkbox" id="surge_auto" style="width:auto;display:inline-block;"> Majoration automatique</label>
+        </div>
+    </div>
+    <div class="grid grid-4">
+        <div class="form-group">
+            <label for="surge_heures_pointe">Heures de pointe</label>
+            <input type="text" id="surge_heures_pointe" placeholder="11-14,18-21">
+        </div>
+        <div class="form-group">
+            <label for="surge_facteur_pointe">Facteur pointe (x)</label>
+            <input type="number" id="surge_facteur_pointe" min="1" max="5" step="0.1">
+        </div>
+        <div class="form-group">
+            <label for="surge_ratio_seuil">Seuil demande/livreur</label>
+            <input type="number" id="surge_ratio_seuil" min="0" step="0.5">
+        </div>
+        <div class="form-group">
+            <label for="surge_facteur_demande">Facteur demande (x)</label>
+            <input type="number" id="surge_facteur_demande" min="1" max="5" step="0.1">
+        </div>
+    </div>
+    <button type="button" class="btn" onclick="enregistrerSurge()">Enregistrer la tarification</button>
+    <p class="text-muted mt-1">La majoration manuelle s'applique en permanence. La majoration automatique ajoute les heures de pointe et la forte demande (commandes en attente / livreurs en ligne &ge; seuil). Les facteurs ne se cumulent pas : le plus eleve est retenu, plafonne par la majoration maximale.</p>
+</div>
+
+<div class="card mt-1">
     <h2>Types de livraison &amp; tarifs</h2>
     <div class="table-wrap">
         <table>
@@ -97,6 +138,34 @@ async function chargerParametres() {
     document.getElementById('dispatch_offre_secondes').value = p.dispatch_offre_secondes ?? 45;
     document.getElementById('dispatch_rayon_max_km').value = p.dispatch_rayon_max_km ?? 10;
     document.getElementById('dispatch_poids_note').value = p.dispatch_poids_note ?? 0.5;
+
+    document.getElementById('surge_actif').checked = p.surge_actif === '1';
+    document.getElementById('surge_auto').checked = p.surge_auto === '1';
+    document.getElementById('surge_manuel').value = p.surge_manuel ?? 1;
+    document.getElementById('surge_max').value = p.surge_max ?? 2;
+    document.getElementById('surge_heures_pointe').value = p.surge_heures_pointe ?? '11-14,18-21';
+    document.getElementById('surge_facteur_pointe').value = p.surge_facteur_pointe ?? 1.2;
+    document.getElementById('surge_ratio_seuil').value = p.surge_ratio_seuil ?? 2;
+    document.getElementById('surge_facteur_demande').value = p.surge_facteur_demande ?? 1.3;
+}
+
+async function enregistrerSurge() {
+    const alertZone = document.getElementById('alert-zone-4');
+    try {
+        await Api.post('/api/admin/settings.php', {
+            surge_actif: document.getElementById('surge_actif').checked ? '1' : '0',
+            surge_auto: document.getElementById('surge_auto').checked ? '1' : '0',
+            surge_manuel: document.getElementById('surge_manuel').value,
+            surge_max: document.getElementById('surge_max').value,
+            surge_heures_pointe: document.getElementById('surge_heures_pointe').value.trim(),
+            surge_facteur_pointe: document.getElementById('surge_facteur_pointe').value,
+            surge_ratio_seuil: document.getElementById('surge_ratio_seuil').value,
+            surge_facteur_demande: document.getElementById('surge_facteur_demande').value,
+        });
+        alertZone.innerHTML = '<div class="alert alert-succes">Tarification dynamique enregistree.</div>';
+    } catch (err) {
+        alertZone.innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
+    }
 }
 
 async function enregistrerDispatch() {

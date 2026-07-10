@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../../config/database.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/Response.php';
 require_once __DIR__ . '/../../../includes/Auth.php';
+require_once __DIR__ . '/../../../includes/pricing.php';
 
 Auth::requireRole('client');
 
@@ -34,11 +35,19 @@ $lngArrivee = (float) $body['lng_arrivee'];
 $express = (bool) input($body, 'express', false);
 
 $distanceKm = haversine_distance_km($latDepart, $lngDepart, $latArrivee, $lngArrivee);
-$montant = estimer_cout((float) $type['tarif_base'], (float) $type['tarif_km'], $distanceKm, $express, (float) $type['supplement_express']);
+$montantBase = estimer_cout((float) $type['tarif_base'], (float) $type['tarif_km'], $distanceKm, $express, (float) $type['supplement_express']);
+
+// Tarification dynamique : majoration eventuelle selon l'heure et la demande.
+$surge = surge_multiplicateur($db);
+$montant = appliquer_surge($montantBase, $surge);
 
 Response::success([
     'distance_km' => $distanceKm,
     'montant_estime' => $montant,
+    'montant_base' => $montantBase,
     'devise' => 'FCFA',
     'type_livraison' => $type['nom'],
+    'surge_actif' => $surge['actif'],
+    'surge_facteur' => $surge['facteur'],
+    'surge_raison' => $surge['raison'],
 ]);

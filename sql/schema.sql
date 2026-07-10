@@ -479,7 +479,15 @@ INSERT INTO parametres (cle, valeur) VALUES
 ('reattribution_acceptee_minutes', '10'),
 ('dispatch_offre_secondes', '45'),
 ('dispatch_rayon_max_km', '10'),
-('dispatch_poids_note', '0.5');
+('dispatch_poids_note', '0.5'),
+('surge_actif', '0'),
+('surge_max', '2.0'),
+('surge_manuel', '1.0'),
+('surge_auto', '0'),
+('surge_heures_pointe', '11-14,18-21'),
+('surge_facteur_pointe', '1.2'),
+('surge_ratio_seuil', '2'),
+('surge_facteur_demande', '1.3');
 
 -- Compte admin par defaut (mot de passe: ChangeMoi123! - a changer immediatement)
 -- Hash genere avec password_hash('ChangeMoi123!', PASSWORD_BCRYPT)

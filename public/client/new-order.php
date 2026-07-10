@@ -150,7 +150,10 @@ async function estimer() {
         document.getElementById('estim-montant').textContent = formatMontant(res.data.montant_estime);
         btn.disabled = false;
         btn.textContent = 'Confirmer la commande';
-        alertZone.innerHTML = '';
+        // Information de tarification dynamique (majoration eventuelle).
+        alertZone.innerHTML = res.data.surge_actif
+            ? `<div class="alert alert-info">Tarif majore &times;${res.data.surge_facteur}${res.data.surge_raison ? ' (' + escapeHtml(res.data.surge_raison) + ')' : ''} en raison de la demande actuelle.</div>`
+            : '';
     } catch (err) {
         alertZone.innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
     }

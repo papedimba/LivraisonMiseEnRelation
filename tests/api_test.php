@@ -235,6 +235,23 @@ function tests_api(string $base): void
     $r = $admin->get('/api/admin/settings.php');
     t_eq('18', $r['body']['data']['parametres']['commission_taux_defaut'] ?? null, 'parametre commission bien enregistre');
 
+    // -- Tarification dynamique (surge) ----------------------------------------
+    t_section('Tarification dynamique');
+    $paramsEstim = [
+        'type_livraison_id' => 1, 'lat_depart' => 7.69, 'lng_depart' => -5.03,
+        'lat_arrivee' => 7.70, 'lng_arrivee' => -5.04, 'express' => false,
+    ];
+    $r = $client->post('/api/client/estimation.php', $paramsEstim);
+    $montantNormal = (float) ($r['body']['data']['montant_estime'] ?? 0);
+    t_ok(($r['body']['data']['surge_actif'] ?? true) === false, 'surge inactif par defaut');
+
+    $admin->post('/api/admin/settings.php', ['surge_actif' => '1', 'surge_manuel' => '1.5', 'surge_auto' => '0']);
+    $r = $client->post('/api/client/estimation.php', $paramsEstim);
+    t_ok(($r['body']['data']['surge_actif'] ?? false) === true, 'surge actif apres activation');
+    t_eq(round($montantNormal * 1.5), (float) ($r['body']['data']['montant_estime'] ?? 0), 'montant majore x1.5');
+
+    $admin->post('/api/admin/settings.php', ['surge_actif' => '0']); // ne pas polluer la suite
+
     // -- Securite --------------------------------------------------------------
     t_section('Controle d\'acces');
     $anon = new TestHttp($base);

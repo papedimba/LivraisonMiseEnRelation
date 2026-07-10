@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/webpush_util.php';
+require_once __DIR__ . '/../includes/pricing.php';
 
 function tests_unitaires(): void
 {
@@ -14,6 +15,15 @@ function tests_unitaires(): void
     $d = haversine_distance_km(7.69, -5.03, 7.70, -5.04);
     t_ok($d > 1.4 && $d < 1.7, "distance Bouake ~1.57 km (obtenu {$d})");
     t_eq(0.0, haversine_distance_km(7.69, -5.03, 7.69, -5.03), 'distance nulle pour meme point');
+
+    t_section('Tarification dynamique (surge)');
+    t_ok(surge_heure_de_pointe(12, '11-14,18-21'), '12h est une heure de pointe (plage 11-14)');
+    t_ok(surge_heure_de_pointe(19, '11-14,18-21'), '19h est une heure de pointe (plage 18-21)');
+    t_ok(!surge_heure_de_pointe(14, '11-14,18-21'), '14h exclu (borne de fin)');
+    t_ok(!surge_heure_de_pointe(9, '11-14,18-21'), '9h hors pointe');
+    t_ok(surge_heure_de_pointe(20, '20'), 'heure unique 20h reconnue');
+    t_eq(1200.0, appliquer_surge(800, ['facteur' => 1.5, 'actif' => true, 'raison' => '']), 'surge x1.5 sur 800 = 1200');
+    t_eq(800.0, appliquer_surge(800, ['facteur' => 1.0, 'actif' => false, 'raison' => '']), 'surge x1 = inchange');
 
     t_section('Estimation du cout');
     // tarif_base 500 + tarif_km 150 * 2 km = 800, sans express
