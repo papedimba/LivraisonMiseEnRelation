@@ -434,6 +434,18 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .fav-chip:hover { border-color: var(--primaire); color: var(--primaire); }
 
+/* -------------------------------------------------- Recherche de reperes (carto) */
+.repere-search { position: relative; margin-top: 0.35rem; }
+.repere-suggestions {
+    position: absolute; left: 0; right: 0; top: calc(100% + 2px); z-index: 30;
+    background: var(--carte); border: 1px solid var(--bordure); border-radius: var(--rayon-sm);
+    box-shadow: var(--ombre); max-height: 220px; overflow-y: auto;
+}
+.repere-item { padding: 0.5rem 0.7rem; cursor: pointer; font-size: 0.9rem; }
+.repere-item:hover { background: var(--primaire-clair); }
+.repere-item + .repere-item { border-top: 1px solid var(--bordure); }
+.repere-item .cat { color: var(--texte-doux); font-size: 0.78rem; }
+
 /* ------------------------------------------------------------ Messagerie chat */
 .chat-messages {
     display: flex; flex-direction: column; gap: 0.5rem;

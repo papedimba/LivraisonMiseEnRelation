@@ -312,6 +312,12 @@ function tests_api(string $base): void
     $ids = array_column($r['body']['data']['points'] ?? [], 'id');
     t_ok(in_array($pid, $ids), 'point valide visible sur la carte publique');
 
+    // Recherche texte (placeholder reutilise : regression PDO non emule).
+    $r = $client->get('/api/public/map_points.php?q=' . urlencode("Repere {$suffix}"));
+    t_eq(200, $r['code'], 'recherche texte de repere sans erreur SQL');
+    $ids = array_column($r['body']['data']['points'] ?? [], 'id');
+    t_ok(in_array($pid, $ids), 'la recherche texte retrouve le repere');
+
     $r = $livreur->post('/api/map/point_vote.php', ['point_id' => $pid, 'type' => 'confirme']);
     t_eq(200, $r['code'], 'un utilisateur confirme le point');
     t_eq(1, $r['body']['data']['confirmations'] ?? 0, 'une confirmation comptee');

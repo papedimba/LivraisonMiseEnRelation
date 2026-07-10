@@ -33,8 +33,10 @@ if ($categorie !== '' && in_array($categorie, carto_categories(), true)) {
 
 $q = clean_str($_GET['q'] ?? '');
 if ($q !== '') {
-    $sql .= ' AND (nom LIKE :q OR description LIKE :q)';
-    $params['q'] = '%' . $q . '%';
+    // PDO non emule : un meme placeholder ne peut pas apparaitre deux fois.
+    $sql .= ' AND (nom LIKE :q_nom OR description LIKE :q_desc)';
+    $params['q_nom'] = '%' . $q . '%';
+    $params['q_desc'] = '%' . $q . '%';
 }
 
 $sql .= ' ORDER BY confirmations DESC, id DESC LIMIT 500';

@@ -27,11 +27,19 @@ require __DIR__ . '/../includes/header.php';
             <label>Point de depart <span class="text-muted">(cliquez sur la carte, marqueur orange)</span></label>
             <input type="text" id="adresse_depart" placeholder="Adresse de depart" required>
             <div class="fav-chips" id="fav-depart"></div>
+            <div class="repere-search">
+                <input type="text" id="rep-depart" placeholder="🔎 Rechercher un repere (ex: pharmacie, ecole...)">
+                <div class="repere-suggestions hidden" id="sug-depart"></div>
+            </div>
         </div>
         <div class="form-group">
             <label>Point d'arrivee <span class="text-muted">(cliquez sur la carte, marqueur vert)</span></label>
             <input type="text" id="adresse_arrivee" placeholder="Adresse d'arrivee" required>
             <div class="fav-chips" id="fav-arrivee"></div>
+            <div class="repere-search">
+                <input type="text" id="rep-arrivee" placeholder="🔎 Rechercher un repere (ex: marche, carrefour...)">
+                <div class="repere-suggestions hidden" id="sug-arrivee"></div>
+            </div>
             <div class="flex" style="margin-top:0.35rem;">
                 <button type="button" class="btn btn-ghost btn-sm" id="btn-save-arrivee">💾 Enregistrer cette adresse</button>
                 <a class="btn btn-ghost btn-sm" href="/client/addresses.php">Gerer mes adresses</a>
@@ -322,6 +330,54 @@ document.getElementById('btn-save-arrivee').addEventListener('click', async () =
     }
 });
 
+// --- Recherche de reperes issus de la cartographie collaborative -------------
+function brancherRechercheRepere(inputId, listId, cible) {
+    const input = document.getElementById(inputId);
+    const liste = document.getElementById(listId);
+    let minuteur = null;
+
+    const fermer = () => { liste.classList.add('hidden'); liste.innerHTML = ''; };
+
+    input.addEventListener('input', () => {
+        clearTimeout(minuteur);
+        const q = input.value.trim();
+        if (q.length < 2) { fermer(); return; }
+        minuteur = setTimeout(async () => {
+            try {
+                const res = await Api.get('/api/public/map_points.php?q=' + encodeURIComponent(q));
+                const points = (res.data.points || []).slice(0, 8);
+                if (!points.length) { fermer(); return; }
+                liste.innerHTML = points.map(p =>
+                    `<div class="repere-item" data-lat="${p.latitude}" data-lng="${p.longitude}" data-nom="${escapeHtml(p.nom)}">
+                        ${escapeHtml(p.nom)} <span class="cat">· ${escapeHtml(p.categorie)} · 👍 ${p.confirmations}</span>
+                    </div>`).join('');
+                liste.classList.remove('hidden');
+                liste.querySelectorAll('.repere-item').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const lat = parseFloat(el.dataset.lat), lng = parseFloat(el.dataset.lng);
+                        if (cible === 'depart') {
+                            placerDepart(lat, lng);
+                            document.getElementById('adresse_depart').value = el.dataset.nom;
+                        } else {
+                            placerArrivee(lat, lng);
+                            document.getElementById('adresse_arrivee').value = el.dataset.nom;
+                        }
+                        input.value = '';
+                        fermer();
+                        map.panTo([lat, lng]);
+                        estimer();
+                    });
+                });
+            } catch (err) { fermer(); }
+        }, 300);
+    });
+
+    // Ferme la liste si on clique ailleurs.
+    document.addEventListener('click', (e) => {
+        if (e.target !== input && !liste.contains(e.target)) { fermer(); }
+    });
+}
+
 // --- Recommander une commande (pre-remplissage depuis une commande passee) ---
 async function prechargerReorder() {
     const params = new URLSearchParams(window.location.search);
@@ -357,5 +413,7 @@ initMap();
 chargerTypes().then(prechargerReorder);
 chargerMoyensTransport();
 chargerFavoris();
+brancherRechercheRepere('rep-depart', 'sug-depart', 'depart');
+brancherRechercheRepere('rep-arrivee', 'sug-arrivee', 'arrivee');
 </script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>
