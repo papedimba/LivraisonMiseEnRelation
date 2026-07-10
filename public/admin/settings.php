@@ -119,12 +119,39 @@ require __DIR__ . '/../includes/header.php';
 </div>
 
 <div class="card mt-1">
-    <h2>Types de livraison &amp; tarifs</h2>
+    <h2>Types de colis &amp; tarifs</h2>
+    <p class="text-muted">Tarif de livraison = tarif de base + (tarif/km &times; distance) + supplement express eventuel. Modifiez une valeur pour l'enregistrer aussitot.</p>
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Nom</th><th>Tarif de base</th><th>Tarif / km</th><th>Supplement express</th><th>Actif</th></tr></thead>
-            <tbody id="liste-types"><tr><td colspan="5" class="text-muted">Chargement...</td></tr></tbody>
+            <thead><tr><th>Nom</th><th>Tarif de base</th><th>Tarif / km</th><th>Supplement express</th><th>Actif</th><th></th></tr></thead>
+            <tbody id="liste-types"><tr><td colspan="6" class="text-muted">Chargement...</td></tr></tbody>
         </table>
+    </div>
+    <div id="alert-type" class="mt-1"></div>
+    <div class="grid grid-4" style="align-items:end;">
+        <div class="form-group"><label for="nt-nom">Nouveau type</label><input type="text" id="nt-nom" placeholder="Ex: Meubles"></div>
+        <div class="form-group"><label for="nt-base">Tarif de base</label><input type="number" id="nt-base" value="500" min="0"></div>
+        <div class="form-group"><label for="nt-km">Tarif / km</label><input type="number" id="nt-km" value="150" min="0"></div>
+        <div class="form-group"><label for="nt-exp">Supplement express</label><input type="number" id="nt-exp" value="1000" min="0"></div>
+    </div>
+    <button type="button" class="btn" onclick="creerType()">Ajouter le type</button>
+</div>
+
+<div class="card mt-1">
+    <h2>Moyens de transport</h2>
+    <p class="text-muted">Le client choisit un moyen de transport a la commande. Le prix de livraison est multiplie par le coefficient (ex: voiture &times;1.5).</p>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Nom</th><th>Icone</th><th>Multiplicateur (&times;)</th><th>Actif</th><th></th></tr></thead>
+            <tbody id="liste-transport"><tr><td colspan="5" class="text-muted">Chargement...</td></tr></tbody>
+        </table>
+    </div>
+    <div id="alert-transport" class="mt-1"></div>
+    <div class="grid grid-4" style="align-items:end;">
+        <div class="form-group"><label for="nm-nom">Nouveau moyen</label><input type="text" id="nm-nom" placeholder="Ex: Camion"></div>
+        <div class="form-group"><label for="nm-icone">Icone (texte)</label><input type="text" id="nm-icone" placeholder="camion"></div>
+        <div class="form-group"><label for="nm-mult">Multiplicateur</label><input type="number" id="nm-mult" value="1.0" min="0.1" max="10" step="0.1"></div>
+        <div class="form-group" style="display:flex;align-items:flex-end;"><button type="button" class="btn btn-block" onclick="creerTransport()">Ajouter</button></div>
     </div>
 </div>
 
@@ -215,7 +242,7 @@ document.getElementById('broadcast-form').addEventListener('submit', async (e) =
 
 async function chargerTypes() {
     const tbody = document.getElementById('liste-types');
-    const res = await Api.get('/api/public/delivery_types.php');
+    const res = await Api.get('/api/admin/delivery_types_list.php');
     tbody.innerHTML = res.data.types.map(t => `
         <tr>
             <td>${escapeHtml(t.nom)}</td>
@@ -223,6 +250,7 @@ async function chargerTypes() {
             <td><input type="number" value="${t.tarif_km}" data-id="${t.id}" data-champ="tarif_km" style="width:100px;"></td>
             <td><input type="number" value="${t.supplement_express}" data-id="${t.id}" data-champ="supplement_express" style="width:100px;"></td>
             <td><input type="checkbox" ${t.actif == 1 ? 'checked' : ''} data-id="${t.id}" data-champ="actif" style="width:auto;"></td>
+            <td><button class="btn btn-ghost btn-sm" data-del="${t.id}">Supprimer</button></td>
         </tr>
     `).join('');
 
@@ -237,9 +265,96 @@ async function chargerTypes() {
             }
         });
     });
+    tbody.querySelectorAll('button[data-del]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (!confirm('Supprimer ce type de colis ?')) { return; }
+            try {
+                await Api.post('/api/admin/delivery_types_delete.php', { id: btn.dataset.del });
+                chargerTypes();
+            } catch (err) {
+                document.getElementById('alert-type').innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
+            }
+        });
+    });
+}
+
+async function creerType() {
+    const zone = document.getElementById('alert-type');
+    const nom = document.getElementById('nt-nom').value.trim();
+    if (!nom) { zone.innerHTML = '<div class="alert alert-erreur">Indiquez un nom.</div>'; return; }
+    try {
+        await Api.post('/api/admin/delivery_types_create.php', {
+            nom: nom,
+            tarif_base: document.getElementById('nt-base').value,
+            tarif_km: document.getElementById('nt-km').value,
+            supplement_express: document.getElementById('nt-exp').value,
+        });
+        document.getElementById('nt-nom').value = '';
+        zone.innerHTML = '<div class="alert alert-succes">Type ajoute.</div>';
+        chargerTypes();
+    } catch (err) {
+        zone.innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
+    }
+}
+
+async function chargerTransport() {
+    const tbody = document.getElementById('liste-transport');
+    const res = await Api.get('/api/admin/transport_list.php');
+    tbody.innerHTML = res.data.moyens.length ? res.data.moyens.map(m => `
+        <tr>
+            <td><input type="text" value="${escapeHtml(m.nom)}" data-id="${m.id}" data-champ="nom" style="width:130px;"></td>
+            <td><input type="text" value="${escapeHtml(m.icone || '')}" data-id="${m.id}" data-champ="icone" style="width:90px;"></td>
+            <td><input type="number" value="${m.multiplicateur}" data-id="${m.id}" data-champ="multiplicateur" min="0.1" max="10" step="0.1" style="width:90px;"></td>
+            <td><input type="checkbox" ${m.actif == 1 ? 'checked' : ''} data-id="${m.id}" data-champ="actif" style="width:auto;"></td>
+            <td><button class="btn btn-ghost btn-sm" data-del="${m.id}">Supprimer</button></td>
+        </tr>
+    `).join('') : '<tr><td colspan="5" class="text-muted">Aucun moyen de transport.</td></tr>';
+
+    tbody.querySelectorAll('input').forEach(input => {
+        input.addEventListener('change', async () => {
+            const champ = input.dataset.champ;
+            const valeur = champ === 'actif' ? input.checked : input.value;
+            try {
+                await Api.post('/api/admin/transport_save.php', { id: input.dataset.id, [champ]: valeur });
+            } catch (err) {
+                document.getElementById('alert-transport').innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
+            }
+        });
+    });
+    tbody.querySelectorAll('button[data-del]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (!confirm('Supprimer ce moyen de transport ?')) { return; }
+            try {
+                await Api.post('/api/admin/transport_delete.php', { id: btn.dataset.del });
+                chargerTransport();
+            } catch (err) {
+                document.getElementById('alert-transport').innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
+            }
+        });
+    });
+}
+
+async function creerTransport() {
+    const zone = document.getElementById('alert-transport');
+    const nom = document.getElementById('nm-nom').value.trim();
+    if (!nom) { zone.innerHTML = '<div class="alert alert-erreur">Indiquez un nom.</div>'; return; }
+    try {
+        await Api.post('/api/admin/transport_save.php', {
+            nom: nom,
+            icone: document.getElementById('nm-icone').value.trim(),
+            multiplicateur: document.getElementById('nm-mult').value,
+        });
+        document.getElementById('nm-nom').value = '';
+        document.getElementById('nm-icone').value = '';
+        zone.innerHTML = '<div class="alert alert-succes">Moyen de transport ajoute.</div>';
+        chargerTransport();
+    } catch (err) {
+        zone.innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
+    }
 }
 
 chargerParametres();
 chargerTypes();
+chargerTransport();
 </script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>

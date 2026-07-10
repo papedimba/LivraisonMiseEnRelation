@@ -57,6 +57,13 @@ $instructions = clean_str(input($body, 'instructions', ''));
 $distanceKm = haversine_distance_km($latDepart, $lngDepart, $latArrivee, $lngArrivee);
 $montantLivraison = estimer_cout((float) $type['tarif_base'], (float) $type['tarif_km'], $distanceKm, $express, (float) $type['supplement_express']);
 
+// Moyen de transport choisi (facultatif) : multiplicateur tarifaire.
+$transport = moyen_transport_actif($db, isset($body['moyen_transport_id']) ? (int) $body['moyen_transport_id'] : null);
+$moyenTransportId = $transport['id'] ?? null;
+if ($transport) {
+    $montantLivraison = round($montantLivraison * (float) $transport['multiplicateur']);
+}
+
 // Tarification dynamique : meme regle qu'a l'estimation.
 $surge = surge_multiplicateur($db);
 $montantLivraison = appliquer_surge($montantLivraison, $surge);
@@ -114,13 +121,13 @@ try {
 
     $stmt = $db->prepare(
         'INSERT INTO commandes (
-            reference, client_id, commercant_id, type_livraison_id, statut,
+            reference, client_id, commercant_id, type_livraison_id, moyen_transport_id, statut,
             adresse_depart, lat_depart, lng_depart, adresse_arrivee, lat_arrivee, lng_arrivee,
             distance_km, est_express, instructions, code_livraison,
             code_promo, reduction, montant_estime, commission_taux, commission_montant,
             mode_paiement, statut_paiement
         ) VALUES (
-            :reference, :client_id, :commercant_id, :type_livraison_id, :statut,
+            :reference, :client_id, :commercant_id, :type_livraison_id, :moyen_transport_id, :statut,
             :adresse_depart, :lat_depart, :lng_depart, :adresse_arrivee, :lat_arrivee, :lng_arrivee,
             :distance_km, :est_express, :instructions, :code_livraison,
             :code_promo, :reduction, :montant_estime, :commission_taux, :commission_montant,
@@ -132,6 +139,7 @@ try {
         'client_id' => $clientId,
         'commercant_id' => $commercantId,
         'type_livraison_id' => $type['id'],
+        'moyen_transport_id' => $moyenTransportId,
         'statut' => 'en_attente',
         'adresse_depart' => clean_str($body['adresse_depart']),
         'lat_depart' => $latDepart,

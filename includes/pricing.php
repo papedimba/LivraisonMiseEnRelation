@@ -101,3 +101,18 @@ function appliquer_surge(float $coutLivraison, array $surge): float
 {
     return round($coutLivraison * $surge['facteur']);
 }
+
+/**
+ * Retourne le moyen de transport actif correspondant a l'id, ou null.
+ *
+ * @return array{id:int,code:string,nom:string,multiplicateur:string}|null
+ */
+function moyen_transport_actif(PDO $db, ?int $id): ?array
+{
+    if ($id === null || $id <= 0) {
+        return null;
+    }
+    $stmt = $db->prepare('SELECT id, code, nom, multiplicateur FROM moyens_transport WHERE id = :id AND actif = 1');
+    $stmt->execute(['id' => $id]);
+    return $stmt->fetch() ?: null;
+}

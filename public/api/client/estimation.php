@@ -35,7 +35,12 @@ $lngArrivee = (float) $body['lng_arrivee'];
 $express = (bool) input($body, 'express', false);
 
 $distanceKm = haversine_distance_km($latDepart, $lngDepart, $latArrivee, $lngArrivee);
-$montantBase = estimer_cout((float) $type['tarif_base'], (float) $type['tarif_km'], $distanceKm, $express, (float) $type['supplement_express']);
+$coutType = estimer_cout((float) $type['tarif_base'], (float) $type['tarif_km'], $distanceKm, $express, (float) $type['supplement_express']);
+
+// Moyen de transport choisi : multiplicateur applique au cout de livraison.
+$transport = moyen_transport_actif($db, isset($body['moyen_transport_id']) ? (int) $body['moyen_transport_id'] : null);
+$multTransport = $transport ? (float) $transport['multiplicateur'] : 1.0;
+$montantBase = round($coutType * $multTransport);
 
 // Tarification dynamique : majoration eventuelle selon l'heure et la demande.
 $surge = surge_multiplicateur($db);
@@ -47,6 +52,8 @@ Response::success([
     'montant_base' => $montantBase,
     'devise' => 'FCFA',
     'type_livraison' => $type['nom'],
+    'moyen_transport' => $transport['nom'] ?? null,
+    'transport_facteur' => $multTransport,
     'surge_actif' => $surge['actif'],
     'surge_facteur' => $surge['facteur'],
     'surge_raison' => $surge['raison'],

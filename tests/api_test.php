@@ -235,6 +235,42 @@ function tests_api(string $base): void
     $r = $admin->get('/api/admin/settings.php');
     t_eq('18', $r['body']['data']['parametres']['commission_taux_defaut'] ?? null, 'parametre commission bien enregistre');
 
+    // -- Moyens de transport (multiplicateur tarifaire) ------------------------
+    t_section('Moyens de transport');
+    $r = $client->get('/api/public/transport_modes.php');
+    $moyens = $r['body']['data']['moyens'] ?? [];
+    t_ok(count($moyens) >= 1, 'liste publique des moyens de transport');
+    $moto = null; $voiture = null;
+    foreach ($moyens as $m) {
+        if ($m['code'] === 'moto') { $moto = $m; }
+        if ($m['code'] === 'voiture') { $voiture = $m; }
+    }
+    $estimBase = [
+        'type_livraison_id' => 1, 'lat_depart' => 7.69, 'lng_depart' => -5.03,
+        'lat_arrivee' => 7.70, 'lng_arrivee' => -5.04, 'express' => false,
+    ];
+    $r = $client->post('/api/client/estimation.php', $estimBase + ['moyen_transport_id' => $moto['id']]);
+    $montMoto = (float) ($r['body']['data']['montant_estime'] ?? 0);
+    $r = $client->post('/api/client/estimation.php', $estimBase + ['moyen_transport_id' => $voiture['id']]);
+    $montVoiture = (float) ($r['body']['data']['montant_estime'] ?? 0);
+    t_eq(round($montMoto * 1.5), $montVoiture, 'voiture (x1.5) majore le prix de la moto');
+
+    // CRUD admin d'un moyen de transport.
+    $r = $admin->post('/api/admin/transport_save.php', ['nom' => 'Camion Test', 'multiplicateur' => 2.5]);
+    t_eq(201, $r['code'], 'admin cree un moyen de transport');
+    $tid = $r['body']['data']['id'] ?? 0;
+    $r = $admin->post('/api/admin/transport_save.php', ['id' => $tid, 'multiplicateur' => 3.0]);
+    t_eq(200, $r['code'], 'admin modifie le multiplicateur');
+    $r = $admin->post('/api/admin/transport_delete.php', ['id' => $tid]);
+    t_eq(200, $r['code'], 'admin supprime un moyen de transport');
+
+    // CRUD admin d'un type de colis.
+    $r = $admin->post('/api/admin/delivery_types_create.php', ['nom' => "Type {$suffix}", 'tarif_base' => 700]);
+    t_eq(201, $r['code'], 'admin cree un type de colis');
+    $tyid = $r['body']['data']['id'] ?? 0;
+    $r = $admin->post('/api/admin/delivery_types_delete.php', ['id' => $tyid]);
+    t_eq(200, $r['code'], 'admin supprime un type de colis');
+
     // -- Tarification dynamique (surge) ----------------------------------------
     t_section('Tarification dynamique');
     $paramsEstim = [

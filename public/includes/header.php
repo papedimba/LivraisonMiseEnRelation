@@ -33,6 +33,7 @@ $menus = [
         ['/admin/orders.php', 'Commandes', '🧾'],
         ['/admin/marketing.php', 'Marketing', '🎯'],
         ['/admin/zones.php', 'Zones', '📍'],
+        ['/admin/settings.php', 'Tarifs', '⚙️'],
     ],
 ];
 $items = $menus[$role] ?? [];

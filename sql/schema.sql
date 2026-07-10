@@ -118,6 +118,20 @@ CREATE TABLE IF NOT EXISTS types_livraison (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ----------------------------------------------------------------------------
+-- Moyens de transport (choisis par le client, avec multiplicateur de prix)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS moyens_transport (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(40) NOT NULL,
+    nom VARCHAR(100) NOT NULL,
+    icone VARCHAR(50) DEFAULT NULL,
+    multiplicateur DECIMAL(4,2) NOT NULL DEFAULT 1.00,
+    actif TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_transport_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------------------------------------------------------
 -- Produits des commercants (avec recherche FULLTEXT)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS produits (
@@ -148,6 +162,7 @@ CREATE TABLE IF NOT EXISTS commandes (
     livreur_id INT UNSIGNED DEFAULT NULL,
     commercant_id INT UNSIGNED DEFAULT NULL,
     type_livraison_id INT UNSIGNED NOT NULL,
+    moyen_transport_id INT UNSIGNED DEFAULT NULL,
     statut ENUM('en_attente','acceptee','recuperee','en_cours','livree','annulee') NOT NULL DEFAULT 'en_attente',
     adresse_depart VARCHAR(255) NOT NULL,
     lat_depart DECIMAL(10,7) NOT NULL,
@@ -183,6 +198,7 @@ CREATE TABLE IF NOT EXISTS commandes (
     CONSTRAINT fk_commande_livreur FOREIGN KEY (livreur_id) REFERENCES users(id),
     CONSTRAINT fk_commande_commercant FOREIGN KEY (commercant_id) REFERENCES commercant_details(user_id),
     CONSTRAINT fk_commande_type FOREIGN KEY (type_livraison_id) REFERENCES types_livraison(id),
+    CONSTRAINT fk_commande_transport FOREIGN KEY (moyen_transport_id) REFERENCES moyens_transport(id),
     KEY idx_commande_statut (statut),
     KEY idx_commande_client (client_id),
     KEY idx_commande_livreur (livreur_id),
@@ -467,6 +483,13 @@ INSERT INTO types_livraison (code, nom, icone, tarif_base, tarif_km, supplement_
 ('boissons', 'Boissons', 'wine', 500, 150, 1000),
 ('materiaux', 'Materiaux legers', 'box', 1000, 200, 1500),
 ('express', 'Livraison express', 'zap', 1000, 200, 0);
+
+INSERT INTO moyens_transport (code, nom, icone, multiplicateur) VALUES
+('moto', 'Moto', 'moto', 1.00),
+('velo', 'Velo', 'velo', 0.90),
+('tricycle', 'Tricycle', 'tricycle', 1.20),
+('voiture', 'Voiture', 'voiture', 1.50),
+('camionnette', 'Camionnette', 'camion', 2.00);
 
 INSERT INTO parametres (cle, valeur) VALUES
 ('commission_taux_defaut', '15'),

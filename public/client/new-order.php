@@ -14,8 +14,13 @@ require __DIR__ . '/../includes/header.php';
 <div class="grid grid-2">
     <div class="card">
         <div class="form-group">
-            <label for="type_livraison">Type de livraison</label>
+            <label for="type_livraison">Type de colis</label>
             <select id="type_livraison"></select>
+        </div>
+
+        <div class="form-group">
+            <label for="moyen_transport">Moyen de transport</label>
+            <select id="moyen_transport"></select>
         </div>
 
         <div class="form-group">
@@ -131,6 +136,17 @@ async function chargerTypes() {
     select.innerHTML = typesLivraison.map(t => `<option value="${t.id}">${escapeHtml(t.nom)}</option>`).join('');
 }
 
+async function chargerMoyensTransport() {
+    const res = await Api.get('/api/public/transport_modes.php');
+    const select = document.getElementById('moyen_transport');
+    select.innerHTML = (res.data.moyens || []).map(m => {
+        const coef = Number(m.multiplicateur);
+        const suffixe = coef !== 1 ? ` (×${coef})` : '';
+        return `<option value="${m.id}">${escapeHtml(m.nom)}${suffixe}</option>`;
+    }).join('');
+    select.addEventListener('change', estimer);
+}
+
 async function estimer() {
     const alertZone = document.getElementById('alert-zone');
     const btn = document.getElementById('btn-commander');
@@ -140,6 +156,7 @@ async function estimer() {
     try {
         const res = await Api.post('/api/client/estimation.php', {
             type_livraison_id: document.getElementById('type_livraison').value,
+            moyen_transport_id: document.getElementById('moyen_transport').value,
             lat_depart: coords.depart.lat,
             lng_depart: coords.depart.lng,
             lat_arrivee: coords.arrivee.lat,
@@ -199,6 +216,7 @@ document.getElementById('btn-commander').addEventListener('click', async () => {
 
     const payload = {
         type_livraison_id: document.getElementById('type_livraison').value,
+        moyen_transport_id: document.getElementById('moyen_transport').value,
         adresse_depart: adresseDepart,
         lat_depart: coords.depart.lat,
         lng_depart: coords.depart.lng,
@@ -337,6 +355,7 @@ async function prechargerReorder() {
 
 initMap();
 chargerTypes().then(prechargerReorder);
+chargerMoyensTransport();
 chargerFavoris();
 </script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>
