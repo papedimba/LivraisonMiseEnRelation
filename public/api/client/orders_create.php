@@ -15,9 +15,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $body = request_body();
+// Les coordonnees sont la reference obligatoire ; le libelle d'adresse est un
+// complement facultatif (defaut : coordonnees) car le champ fusionne peut etre
+// laisse vide lors d'un simple clic sur la carte.
 $missing = require_fields($body, [
-    'type_livraison_id', 'adresse_depart', 'lat_depart', 'lng_depart',
-    'adresse_arrivee', 'lat_arrivee', 'lng_arrivee', 'mode_paiement',
+    'type_livraison_id', 'lat_depart', 'lng_depart',
+    'lat_arrivee', 'lng_arrivee', 'mode_paiement',
 ]);
 if (!empty($missing)) {
     Response::error('Champs obligatoires manquants.', 422, $missing);
@@ -53,6 +56,16 @@ $latArrivee = (float) $body['lat_arrivee'];
 $lngArrivee = (float) $body['lng_arrivee'];
 $express = (bool) input($body, 'express', false);
 $instructions = clean_str(input($body, 'instructions', ''));
+
+// Libelle d'adresse facultatif : a defaut, on stocke une reference coordonnees.
+$adresseDepart = clean_str(input($body, 'adresse_depart', ''));
+if ($adresseDepart === '') {
+    $adresseDepart = sprintf('Point (%.5f, %.5f)', $latDepart, $lngDepart);
+}
+$adresseArrivee = clean_str(input($body, 'adresse_arrivee', ''));
+if ($adresseArrivee === '') {
+    $adresseArrivee = sprintf('Point (%.5f, %.5f)', $latArrivee, $lngArrivee);
+}
 
 $distanceKm = haversine_distance_km($latDepart, $lngDepart, $latArrivee, $lngArrivee);
 $montantLivraison = estimer_cout((float) $type['tarif_base'], (float) $type['tarif_km'], $distanceKm, $express, (float) $type['supplement_express']);
@@ -141,10 +154,10 @@ try {
         'type_livraison_id' => $type['id'],
         'moyen_transport_id' => $moyenTransportId,
         'statut' => 'en_attente',
-        'adresse_depart' => clean_str($body['adresse_depart']),
+        'adresse_depart' => $adresseDepart,
         'lat_depart' => $latDepart,
         'lng_depart' => $lngDepart,
-        'adresse_arrivee' => clean_str($body['adresse_arrivee']),
+        'adresse_arrivee' => $adresseArrivee,
         'lat_arrivee' => $latArrivee,
         'lng_arrivee' => $lngArrivee,
         'distance_km' => $distanceKm,

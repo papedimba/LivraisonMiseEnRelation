@@ -54,6 +54,18 @@ function tests_api(string $base): void
     $codeLivraison = $r['body']['data']['commande']['code_livraison'] ?? '';
     t_ok(preg_match('/^\d{4}$/', $codeLivraison) === 1, 'code de livraison present dans le suivi');
 
+    // Champ d'adresse fusionne laisse vide : les coordonnees suffisent, le
+    // libelle est alors derive des coordonnees.
+    $r = $client->post('/api/client/orders_create.php', [
+        'type_livraison_id' => 1, 'lat_depart' => 7.69, 'lng_depart' => -5.03,
+        'lat_arrivee' => 7.70, 'lng_arrivee' => -5.04, 'mode_paiement' => 'especes',
+    ]);
+    t_eq(201, $r['code'], 'commande sans libelle d\'adresse acceptee (coordonnees seules)');
+    $refSansAdresse = $r['body']['data']['reference'] ?? '';
+    $r = $client->get('/api/client/orders_track.php?reference=' . urlencode($refSansAdresse));
+    t_ok(strpos((string) ($r['body']['data']['commande']['adresse_depart'] ?? ''), 'Point (') === 0,
+        'libelle d\'adresse par defaut derive des coordonnees');
+
     // -- Livreur ---------------------------------------------------------------
     t_section('Livreur : validation, acceptation, livraison');
     $livreur = new TestHttp($base);
@@ -339,6 +351,13 @@ function tests_api(string $base): void
     $r = $client->get('/api/public/geocode.php?q=bouake');
     t_eq(200, $r['code'], 'geocodage repond (liste vide toleree hors ligne)');
     t_ok(is_array($r['body']['data']['resultats'] ?? null), 'les resultats de geocodage forment une liste');
+
+    // Geocodage inverse (coordonnees -> libelle).
+    $r = $client->get('/api/public/geocode_reverse.php');
+    t_eq(422, $r['code'], 'geocodage inverse sans coordonnees rejete');
+    $r = $client->get('/api/public/geocode_reverse.php?lat=7.69&lng=-5.03');
+    t_eq(200, $r['code'], 'geocodage inverse repond (libelle vide tolere hors ligne)');
+    t_ok(array_key_exists('adresse', $r['body']['data'] ?? []), 'reponse de geocodage inverse contient un libelle');
 
     // -- Securite --------------------------------------------------------------
     t_section('Controle d\'acces');

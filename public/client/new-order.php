@@ -24,22 +24,20 @@ require __DIR__ . '/../includes/header.php';
         </div>
 
         <div class="form-group">
-            <label>Point de depart <span class="text-muted">(cliquez sur la carte, marqueur orange)</span></label>
-            <input type="text" id="adresse_depart" placeholder="Adresse de depart" required>
-            <div class="fav-chips" id="fav-depart"></div>
+            <label>Point de depart <span class="text-muted">(marqueur orange)</span></label>
             <div class="repere-search">
-                <input type="text" id="rep-depart" placeholder="🔎 Rechercher un repere (ex: pharmacie, ecole...)">
+                <input type="text" id="adresse_depart" autocomplete="off" placeholder="🔎 Repere, adresse, ou cliquez sur la carte">
                 <div class="repere-suggestions hidden" id="sug-depart"></div>
             </div>
+            <div class="fav-chips" id="fav-depart"></div>
         </div>
         <div class="form-group">
-            <label>Point d'arrivee <span class="text-muted">(cliquez sur la carte, marqueur vert)</span></label>
-            <input type="text" id="adresse_arrivee" placeholder="Adresse d'arrivee" required>
-            <div class="fav-chips" id="fav-arrivee"></div>
+            <label>Point d'arrivee <span class="text-muted">(marqueur vert)</span></label>
             <div class="repere-search">
-                <input type="text" id="rep-arrivee" placeholder="🔎 Rechercher un repere (ex: marche, carrefour...)">
+                <input type="text" id="adresse_arrivee" autocomplete="off" placeholder="🔎 Repere, adresse, ou cliquez sur la carte">
                 <div class="repere-suggestions hidden" id="sug-arrivee"></div>
             </div>
+            <div class="fav-chips" id="fav-arrivee"></div>
             <div class="flex" style="margin-top:0.35rem;">
                 <button type="button" class="btn btn-ghost btn-sm" id="btn-save-arrivee">💾 Enregistrer cette adresse</button>
                 <a class="btn btn-ghost btn-sm" href="/client/addresses.php">Gerer mes adresses</a>
@@ -110,15 +108,34 @@ function initMap() {
     }).addTo(map);
 
     map.on('click', (e) => {
-        if (!coords.depart) {
+        const cible = !coords.depart ? 'depart' : 'arrivee';
+        if (cible === 'depart') {
             placerDepart(e.latlng.lat, e.latlng.lng);
         } else {
             placerArrivee(e.latlng.lat, e.latlng.lng);
         }
+        remplirAdresseInverse(cible, e.latlng.lat, e.latlng.lng);
         estimer();
     });
 
     tenterGeolocalisation();
+}
+
+// Geocodage inverse : au clic sur la carte, renseigne le champ adresse avec le
+// libelle du lieu (best-effort). En cas d'echec reseau, met un libelle base sur
+// les coordonnees pour que le livreur ait toujours une reference.
+async function remplirAdresseInverse(cible, lat, lng) {
+    const champ = document.getElementById(cible === 'depart' ? 'adresse_depart' : 'adresse_arrivee');
+    try {
+        const res = await Api.get('/api/public/geocode_reverse.php?lat=' + lat + '&lng=' + lng);
+        if (res.data && res.data.adresse) {
+            champ.value = res.data.adresse;
+            return;
+        }
+    } catch (err) { /* repli ci-dessous */ }
+    if (!champ.value.trim()) {
+        champ.value = 'Point sur la carte (' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ')';
+    }
 }
 
 // Centre la carte sur la position du client (s'il l'autorise), pour que la
@@ -232,13 +249,14 @@ document.getElementById('mode_paiement').addEventListener('change', () => {
 
 document.getElementById('btn-commander').addEventListener('click', async () => {
     const alertZone = document.getElementById('alert-zone');
-    const adresseDepart = document.getElementById('adresse_depart').value.trim();
-    const adresseArrivee = document.getElementById('adresse_arrivee').value.trim();
-
-    if (!adresseDepart || !adresseArrivee) {
-        alertZone.innerHTML = '<div class="alert alert-erreur">Veuillez renseigner les adresses de depart et d\'arrivee.</div>';
+    // La reference, ce sont les points places sur la carte ; le libelle d'adresse
+    // est un complement (facultatif, complete par le geocodage inverse).
+    if (!coords.depart || !coords.arrivee) {
+        alertZone.innerHTML = '<div class="alert alert-erreur">Placez le point de depart et le point d\'arrivee (recherche, adresse enregistree ou clic sur la carte).</div>';
         return;
     }
+    const adresseDepart = document.getElementById('adresse_depart').value.trim();
+    const adresseArrivee = document.getElementById('adresse_arrivee').value.trim();
 
     const payload = {
         type_livraison_id: document.getElementById('type_livraison').value,
@@ -357,14 +375,13 @@ function brancherRechercheRepere(inputId, listId, cible) {
     const fermer = () => { liste.classList.add('hidden'); liste.innerHTML = ''; };
 
     function choisir(lat, lng, nom) {
+        // input EST le champ d'adresse (fusionne) : on y ecrit le libelle choisi.
         if (cible === 'depart') {
             placerDepart(lat, lng);
-            document.getElementById('adresse_depart').value = nom;
         } else {
             placerArrivee(lat, lng);
-            document.getElementById('adresse_arrivee').value = nom;
         }
-        input.value = '';
+        input.value = nom;
         fermer();
         map.panTo([lat, lng]);
         estimer();
@@ -486,7 +503,7 @@ initMap();
 chargerTypes().then(prechargerReorder);
 chargerMoyensTransport();
 chargerFavoris();
-brancherRechercheRepere('rep-depart', 'sug-depart', 'depart');
-brancherRechercheRepere('rep-arrivee', 'sug-arrivee', 'arrivee');
+brancherRechercheRepere('adresse_depart', 'sug-depart', 'depart');
+brancherRechercheRepere('adresse_arrivee', 'sug-arrivee', 'arrivee');
 </script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>
