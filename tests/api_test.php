@@ -90,6 +90,10 @@ function tests_api(string $base): void
     $livreur->post('/api/livreur/orders_update_status.php', ['commande_id' => $commandeId, 'statut' => 'recuperee']);
     $livreur->post('/api/livreur/orders_update_status.php', ['commande_id' => $commandeId, 'statut' => 'en_cours']);
 
+    // Trace GPS pendant la course (sert a reconstituer la route parcourue).
+    $livreur->post('/api/livreur/update_position.php', ['latitude' => 7.6905, 'longitude' => -5.0305, 'commande_id' => $commandeId]);
+    $livreur->post('/api/livreur/update_position.php', ['latitude' => 7.6955, 'longitude' => -5.0355, 'commande_id' => $commandeId]);
+
     // Preuve de livraison : mauvais code puis bon code.
     $r = $livreur->post('/api/livreur/confirm_delivery.php', ['commande_id' => $commandeId, 'code_livraison' => '0000']);
     t_eq(422, $r['code'], 'mauvais code de livraison rejete (422)');
@@ -104,6 +108,17 @@ function tests_api(string $base): void
     $nomsPoints = array_column($r['body']['data']['points'] ?? [], 'nom');
     t_ok(in_array('A', $nomsPoints, true) && in_array('B', $nomsPoints, true),
         'depart et arrivee de la commande livree ajoutes a la carte collaborative');
+
+    // Routes des livreurs : la trace GPS de la course livree est reconstituee.
+    $r = $client->get('/api/public/routes.php?bbox=7.6,-5.1,7.8,-5.0');
+    t_eq(200, $r['code'], 'endpoint des routes accessible');
+    $routeTrouvee = false;
+    foreach ($r['body']['data']['routes'] ?? [] as $rt) {
+        if ((int) $rt['commande_id'] === (int) $commandeId && count($rt['points']) >= 2) {
+            $routeTrouvee = true;
+        }
+    }
+    t_ok($routeTrouvee, 'la route parcourue par le livreur est reconstituee (polyligne)');
 
     // -- Evaluation ------------------------------------------------------------
     t_section('Evaluation');

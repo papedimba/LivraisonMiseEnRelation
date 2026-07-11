@@ -25,6 +25,12 @@ require __DIR__ . '/../includes/header.php';
             <button id="btn-mode-ajout" class="btn btn-secondaire">📍 Ajouter un point</button>
         </div>
     </div>
+    <div class="mt-1">
+        <label style="display:inline-flex;align-items:center;gap:0.4rem;">
+            <input type="checkbox" id="toggle-routes" style="width:auto;display:inline-block;">
+            🛣️ Afficher les routes parcourues par les livreurs
+        </label>
+    </div>
     <div id="aide-ajout" class="alert alert-info hidden" style="margin-top:0.75rem;">
         Cliquez sur la carte a l'emplacement exact du point de repere.
     </div>
@@ -75,13 +81,15 @@ const CATS = {
 
 let map, modeAjout = false, pointChoisi = null;
 let marqueurs = {};
+let routesLayer = null; // couche des routes parcourues par les livreurs
 
 function initMap() {
     map = L.map('map').setView([7.6900, -5.0300], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors', maxZoom: 19,
     }).addTo(map);
-    map.on('moveend', chargerPoints);
+    routesLayer = L.layerGroup().addTo(map);
+    map.on('moveend', () => { chargerPoints(); chargerRoutes(); });
     map.on('click', (e) => {
         if (!modeAjout) { return; }
         pointChoisi = e.latlng;
@@ -131,6 +139,28 @@ async function chargerPoints() {
         });
     } catch (err) { /* silencieux */ }
 }
+
+// Routes parcourues par les livreurs (agregees depuis les livraisons terminees).
+async function chargerRoutes() {
+    if (!document.getElementById('toggle-routes').checked) { return; }
+    const b = map.getBounds();
+    const bbox = [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()].join(',');
+    try {
+        const res = await Api.get('/api/public/routes.php?bbox=' + encodeURIComponent(bbox));
+        routesLayer.clearLayers();
+        (res.data.routes || []).forEach(rt => {
+            L.polyline(rt.points, { color: '#3b82c4', weight: 3, opacity: 0.5 }).addTo(routesLayer);
+        });
+    } catch (err) { /* silencieux */ }
+}
+
+document.getElementById('toggle-routes').addEventListener('change', (e) => {
+    if (e.target.checked) {
+        chargerRoutes();
+    } else if (routesLayer) {
+        routesLayer.clearLayers();
+    }
+});
 
 async function voter(pointId, type) {
     try {

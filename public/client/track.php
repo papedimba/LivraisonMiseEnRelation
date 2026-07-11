@@ -46,6 +46,25 @@ const reference = <?= json_encode($reference) ?>;
 let map, markerLivreur, markerDepart, markerArrivee;
 let commandeId = null;
 let chatDemarre = false;
+let routeLine = null;
+let routePoints = []; // trace reellement parcourue par le livreur
+
+function dessinerRoute() {
+    if (routePoints.length < 2) { return; }
+    if (routeLine) {
+        routeLine.setLatLngs(routePoints);
+    } else {
+        routeLine = L.polyline(routePoints, { color: '#f26522', weight: 4, opacity: 0.75 }).addTo(map);
+    }
+}
+
+// Ajoute un point a la trace s'il differe suffisamment du dernier (anti-doublon).
+function ajouterPointRoute(lat, lng) {
+    const dernier = routePoints[routePoints.length - 1];
+    if (dernier && Math.abs(dernier[0] - lat) < 1e-6 && Math.abs(dernier[1] - lng) < 1e-6) { return; }
+    routePoints.push([lat, lng]);
+    dessinerRoute();
+}
 
 function initMap() {
     map = L.map('map').setView([7.6900, -5.0300], 13);
@@ -101,6 +120,8 @@ function renderDetails(c) {
         } else {
             markerLivreur.setLatLng([c.livreur_lat, c.livreur_lng]);
         }
+        // Dessine la route au fur et a mesure que le livreur avance.
+        ajouterPointRoute(parseFloat(c.livreur_lat), parseFloat(c.livreur_lng));
     }
 
     document.getElementById('btn-annuler')?.addEventListener('click', async () => {
@@ -117,6 +138,11 @@ function renderDetails(c) {
 async function charger() {
     try {
         const res = await Api.get(`/api/client/orders_track.php?reference=${encodeURIComponent(reference)}`);
+        // Trace historique deja enregistree (positions du livreur pour la course).
+        if (Array.isArray(res.data.trajet) && res.data.trajet.length) {
+            routePoints = res.data.trajet.map(t => [parseFloat(t.latitude), parseFloat(t.longitude)]);
+            dessinerRoute();
+        }
         renderDetails(res.data.commande);
     } catch (err) {
         document.getElementById('details').innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
