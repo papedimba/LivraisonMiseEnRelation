@@ -91,4 +91,13 @@ try {
     Response::error('Erreur lors de la confirmation de livraison.', 422);
 }
 
+// Auto-alimentation de la carte collaborative avec les points reellement
+// desservis (best-effort : n'affecte jamais la confirmation de livraison).
+try {
+    require_once __DIR__ . '/../../../includes/carto.php';
+    carto_auto_alimenter($db, $commande);
+} catch (Throwable $e) {
+    error_log('Carto auto-feed error: ' . $e->getMessage());
+}
+
 Response::success(['statut' => 'livree', 'preuve' => $preuveType], 'Livraison confirmee.');

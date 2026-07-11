@@ -98,6 +98,13 @@ function tests_api(string $base): void
     t_eq(200, $r['code'], 'bon code de livraison accepte');
     t_eq('livree', $r['body']['data']['statut'] ?? null, 'commande livree');
 
+    // Auto-alimentation : les points de la commande livree (libelles 'A' et 'B')
+    // deviennent des reperes collaboratifs valides.
+    $r = $client->get('/api/public/map_points.php?bbox=7.6,-5.1,7.8,-5.0');
+    $nomsPoints = array_column($r['body']['data']['points'] ?? [], 'nom');
+    t_ok(in_array('A', $nomsPoints, true) && in_array('B', $nomsPoints, true),
+        'depart et arrivee de la commande livree ajoutes a la carte collaborative');
+
     // -- Evaluation ------------------------------------------------------------
     t_section('Evaluation');
     $r = $client->post('/api/client/rate.php', ['commande_id' => $commandeId, 'note' => 5, 'commentaire' => 'Parfait']);

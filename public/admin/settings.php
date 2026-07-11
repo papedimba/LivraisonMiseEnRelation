@@ -24,6 +24,9 @@ require __DIR__ . '/../includes/header.php';
                 <label for="ville_defaut">Ville par defaut</label>
                 <input type="text" id="ville_defaut">
             </div>
+            <div class="form-group">
+                <label><input type="checkbox" id="carto_auto_alimentation" style="width:auto;display:inline-block;"> Auto-alimenter la carte collaborative apres chaque livraison</label>
+            </div>
             <button type="submit" class="btn">Enregistrer</button>
         </form>
     </div>
@@ -162,6 +165,7 @@ async function chargerParametres() {
     document.getElementById('commission_taux_defaut').value = p.commission_taux_defaut ?? 15;
     document.getElementById('app_nom').value = p.app_nom ?? '';
     document.getElementById('ville_defaut').value = p.ville_defaut ?? '';
+    document.getElementById('carto_auto_alimentation').checked = (p.carto_auto_alimentation ?? '1') === '1';
     document.getElementById('dispatch_offre_secondes').value = p.dispatch_offre_secondes ?? 45;
     document.getElementById('dispatch_rayon_max_km').value = p.dispatch_rayon_max_km ?? 10;
     document.getElementById('dispatch_poids_note').value = p.dispatch_poids_note ?? 0.5;
@@ -217,6 +221,7 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
             commission_taux_defaut: document.getElementById('commission_taux_defaut').value,
             app_nom: document.getElementById('app_nom').value.trim(),
             ville_defaut: document.getElementById('ville_defaut').value.trim(),
+            carto_auto_alimentation: document.getElementById('carto_auto_alimentation').checked ? '1' : '0',
         });
         alertZone.innerHTML = '<div class="alert alert-succes">Parametres enregistres.</div>';
     } catch (err) {

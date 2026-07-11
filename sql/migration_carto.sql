@@ -22,6 +22,11 @@ CREATE TABLE IF NOT EXISTS points_carte (
     KEY idx_point_categorie (categorie)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+INSERT INTO parametres (cle, valeur) VALUES
+    ('carto_auto_alimentation', '1'),
+    ('carto_auto_rayon_m', '40')
+ON DUPLICATE KEY UPDATE valeur = valeur;
+
 CREATE TABLE IF NOT EXISTS points_carte_votes (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     point_id INT UNSIGNED NOT NULL,

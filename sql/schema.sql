@@ -543,7 +543,9 @@ INSERT INTO parametres (cle, valeur) VALUES
 ('surge_heures_pointe', '11-14,18-21'),
 ('surge_facteur_pointe', '1.2'),
 ('surge_ratio_seuil', '2'),
-('surge_facteur_demande', '1.3');
+('surge_facteur_demande', '1.3'),
+('carto_auto_alimentation', '1'),
+('carto_auto_rayon_m', '40');
 
 -- Compte admin par defaut (mot de passe: ChangeMoi123! - a changer immediatement)
 -- Hash genere avec password_hash('ChangeMoi123!', PASSWORD_BCRYPT)
