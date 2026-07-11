@@ -318,6 +318,16 @@ function tests_api(string $base): void
     $ids = array_column($r['body']['data']['points'] ?? [], 'id');
     t_ok(in_array($pid, $ids), 'la recherche texte retrouve le repere');
 
+    // Restriction a la ville : un repere d'une autre ville (Abidjan) est exclu
+    // quand la recherche est ancree sur Bouake avec un rayon "taille ville".
+    $r = $admin->post('/api/map/point_add.php', [
+        'nom' => "Repere Abidjan {$suffix}", 'latitude' => 5.35, 'longitude' => -4.02,
+    ]);
+    $pidLoin = $r['body']['data']['id'] ?? 0;
+    $r = $client->get('/api/public/map_points.php?q=' . urlencode('Repere') . '&lat=7.69&lng=-5.03&rayon_km=40');
+    $ids = array_column($r['body']['data']['points'] ?? [], 'id');
+    t_ok(in_array($pid, $ids) && !in_array($pidLoin, $ids), 'la recherche se limite a la ville du client (rayon)');
+
     $r = $livreur->post('/api/map/point_vote.php', ['point_id' => $pid, 'type' => 'confirme']);
     t_eq(200, $r['code'], 'un utilisateur confirme le point');
     t_eq(1, $r['body']['data']['confirmations'] ?? 0, 'une confirmation comptee');

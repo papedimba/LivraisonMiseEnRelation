@@ -357,10 +357,14 @@ function brancherRechercheRepere(inputId, listId, cible) {
         const q = input.value.trim();
         if (q.length < 3) { fermer(); return; }
         minuteur = setTimeout(async () => {
+            // Ancrage sur la zone/ville affichee (centre de la carte) pour ne
+            // retourner que les reperes et adresses proches du client.
+            const centre = map.getCenter();
+            const geo = '&lat=' + centre.lat + '&lng=' + centre.lng + '&rayon_km=40';
             // Deux sources en parallele : reperes collaboratifs + adresses OSM.
             const [reperesRes, geoRes] = await Promise.allSettled([
-                Api.get('/api/public/map_points.php?q=' + encodeURIComponent(q)),
-                Api.get('/api/public/geocode.php?q=' + encodeURIComponent(q)),
+                Api.get('/api/public/map_points.php?q=' + encodeURIComponent(q) + geo),
+                Api.get('/api/public/geocode.php?q=' + encodeURIComponent(q) + geo),
             ]);
             const reperes = reperesRes.status === 'fulfilled' ? (reperesRes.value.data.points || []).slice(0, 6) : [];
             const adresses = geoRes.status === 'fulfilled' ? (geoRes.value.data.resultats || []).slice(0, 6) : [];

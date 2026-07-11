@@ -43,6 +43,19 @@ $params = [
     'accept-language' => 'fr',
     'addressdetails' => 0,
 ];
+
+// Restriction a la zone / ville du client : si un centre est fourni, on borne
+// la recherche a un cadre "taille ville" autour de lui (viewbox + bounded).
+if (isset($_GET['lat'], $_GET['lng']) && $_GET['lat'] !== '' && $_GET['lng'] !== '') {
+    $latCentre = (float) $_GET['lat'];
+    $lngCentre = (float) $_GET['lng'];
+    $rayonKm = isset($_GET['rayon_km']) ? max(1.0, (float) $_GET['rayon_km']) : 40.0;
+    $dLat = $rayonKm / 111.0;
+    $dLng = $rayonKm / (111.0 * max(0.1, cos(deg2rad($latCentre))));
+    // viewbox = lonMin,latMin,lonMax,latMax
+    $params['viewbox'] = ($lngCentre - $dLng) . ',' . ($latCentre - $dLat) . ',' . ($lngCentre + $dLng) . ',' . ($latCentre + $dLat);
+    $params['bounded'] = 1;
+}
 // L'email de contact est recommande par la politique Nominatim.
 $email = (string) env('NOMINATIM_EMAIL', '');
 if ($email !== '') {
