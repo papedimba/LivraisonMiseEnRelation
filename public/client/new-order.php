@@ -44,8 +44,13 @@ require __DIR__ . '/../includes/header.php';
             </div>
         </div>
 
-        <div id="map"></div>
-        <p class="text-muted mt-1">Astuce : un premier clic place le depart, le second l'arrivee, puis les clics suivants replacent l'arrivee.</p>
+        <div class="flex mt-1" style="align-items:center;">
+            <span class="text-muted">Modifier sur la carte :</span>
+            <button type="button" class="btn btn-sm cible-btn actif" data-cible="depart">🟠 Depart</button>
+            <button type="button" class="btn btn-sm btn-ghost cible-btn" data-cible="arrivee">🟢 Arrivee</button>
+        </div>
+        <div id="map" class="mt-1"></div>
+        <p class="text-muted mt-1">Cliquez sur la carte pour placer le point selectionne, ou faites glisser un marqueur pour l'ajuster.</p>
 
         <div class="form-group mt-1">
             <label><input type="checkbox" id="express" style="width:auto; display:inline-block;"> Livraison express (supplement)</label>
@@ -99,6 +104,16 @@ require __DIR__ . '/../includes/header.php';
 let map, markerDepart, markerArrivee;
 let coords = { depart: null, arrivee: null };
 let typesLivraison = [];
+let cibleActive = 'depart'; // quel point un clic sur la carte place/modifie
+
+function definirCible(cible) {
+    cibleActive = cible;
+    document.querySelectorAll('.cible-btn').forEach(b => {
+        const actif = b.dataset.cible === cible;
+        b.classList.toggle('actif', actif);
+        b.classList.toggle('btn-ghost', !actif);
+    });
+}
 
 function initMap() {
     map = L.map('map').setView([7.6900, -5.0300], 13); // Bouake
@@ -108,9 +123,11 @@ function initMap() {
     }).addTo(map);
 
     map.on('click', (e) => {
-        const cible = !coords.depart ? 'depart' : 'arrivee';
+        const cible = cibleActive;
         if (cible === 'depart') {
             placerDepart(e.latlng.lat, e.latlng.lng);
+            // Enchainement naturel : apres le depart, on vise l'arrivee.
+            if (!coords.arrivee) { definirCible('arrivee'); }
         } else {
             placerArrivee(e.latlng.lat, e.latlng.lng);
         }
@@ -157,7 +174,13 @@ function tenterGeolocalisation() {
 function placerDepart(lat, lng) {
     coords.depart = L.latLng(lat, lng);
     if (!markerDepart) {
-        markerDepart = L.marker(coords.depart, { title: 'Depart' }).addTo(map).bindPopup('Depart');
+        markerDepart = L.marker(coords.depart, { title: 'Depart', draggable: true }).addTo(map).bindPopup('Depart (glissez pour ajuster)');
+        markerDepart.on('dragend', () => {
+            const ll = markerDepart.getLatLng();
+            coords.depart = ll;
+            remplirAdresseInverse('depart', ll.lat, ll.lng);
+            estimer();
+        });
     } else {
         markerDepart.setLatLng(coords.depart);
     }
@@ -166,7 +189,13 @@ function placerDepart(lat, lng) {
 function placerArrivee(lat, lng) {
     coords.arrivee = L.latLng(lat, lng);
     if (!markerArrivee) {
-        markerArrivee = L.marker(coords.arrivee, { title: 'Arrivee' }).addTo(map).bindPopup('Arrivee');
+        markerArrivee = L.marker(coords.arrivee, { title: 'Arrivee', draggable: true }).addTo(map).bindPopup('Arrivee (glissez pour ajuster)');
+        markerArrivee.on('dragend', () => {
+            const ll = markerArrivee.getLatLng();
+            coords.arrivee = ll;
+            remplirAdresseInverse('arrivee', ll.lat, ll.lng);
+            estimer();
+        });
     } else {
         markerArrivee.setLatLng(coords.arrivee);
     }
@@ -239,6 +268,10 @@ async function verifierPromo() {
         zone.innerHTML = '<span style="color:var(--couleur-danger)">' + escapeHtml(err.message) + '</span>';
     }
 }
+
+document.querySelectorAll('.cible-btn').forEach(b => {
+    b.addEventListener('click', () => definirCible(b.dataset.cible));
+});
 
 document.getElementById('type_livraison').addEventListener('change', estimer);
 document.getElementById('express').addEventListener('change', estimer);
