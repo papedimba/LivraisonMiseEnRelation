@@ -7,8 +7,8 @@ $commercantId = (int) ($_GET['id'] ?? 0);
 $pageTitle = 'Boutique';
 require __DIR__ . '/../includes/header.php';
 ?>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.css">
+<script src="/assets/vendor/leaflet/leaflet.js"></script>
 
 <a href="/client/shops.php" class="text-muted">&larr; Toutes les boutiques</a>
 <div id="entete-boutique"><h1>Chargement...</h1></div>

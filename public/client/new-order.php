@@ -5,8 +5,8 @@ require_page_role('client');
 $pageTitle = 'Nouvelle commande';
 require __DIR__ . '/../includes/header.php';
 ?>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.css">
+<script src="/assets/vendor/leaflet/leaflet.js"></script>
 
 <h1>Nouvelle commande</h1>
 <p class="subtitle">Choisissez le type de livraison, le point de depart et le point d'arrivee.</p>
@@ -533,9 +533,16 @@ async function prechargerReorder() {
     }
 }
 
-initMap();
-chargerTypes().then(prechargerReorder);
-chargerMoyensTransport();
+// La carte est isolee du reste : meme si Leaflet echoue a charger, le
+// formulaire (type de colis, moyen de transport, paiement...) reste utilisable.
+try {
+    initMap();
+} catch (e) {
+    const z = document.getElementById('alert-zone');
+    if (z) { z.innerHTML = '<div class="alert alert-erreur">La carte n\'a pas pu se charger. Verifiez votre connexion et rechargez la page.</div>'; }
+}
+chargerTypes().then(prechargerReorder).catch(() => {});
+chargerMoyensTransport().catch(() => {});
 chargerFavoris();
 brancherRechercheRepere('adresse_depart', 'sug-depart', 'depart');
 brancherRechercheRepere('adresse_arrivee', 'sug-arrivee', 'arrivee');

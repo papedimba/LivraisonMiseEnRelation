@@ -5,8 +5,8 @@ require_page_role('client', 'livreur', 'commercant');
 $pageTitle = 'Carte collaborative';
 require __DIR__ . '/../includes/header.php';
 ?>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.css">
+<script src="/assets/vendor/leaflet/leaflet.js"></script>
 
 <div class="flex-between">
     <div>

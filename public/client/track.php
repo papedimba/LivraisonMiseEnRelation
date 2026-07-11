@@ -7,8 +7,8 @@ $reference = $_GET['ref'] ?? '';
 $pageTitle = 'Suivi de commande';
 require __DIR__ . '/../includes/header.php';
 ?>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.css">
+<script src="/assets/vendor/leaflet/leaflet.js"></script>
 <script src="/assets/js/chat.js"></script>
 
 <h1>Suivi de la commande <?= htmlspecialchars($reference) ?></h1>
