@@ -117,6 +117,24 @@ function initMap() {
         }
         estimer();
     });
+
+    tenterGeolocalisation();
+}
+
+// Centre la carte sur la position du client (s'il l'autorise), pour que la
+// recherche de reperes s'ancre sur sa zone reelle. Ne place aucun marqueur et
+// n'ecrase pas un point deja saisi (ex: recommander une commande).
+function tenterGeolocalisation() {
+    if (!navigator.geolocation) { return; }
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            if (!coords.depart && !coords.arrivee) {
+                map.setView([pos.coords.latitude, pos.coords.longitude], 15);
+            }
+        },
+        () => { /* refus ou indisponible : on garde la vue par defaut (Bouake) */ },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 300000 }
+    );
 }
 
 function placerDepart(lat, lng) {
