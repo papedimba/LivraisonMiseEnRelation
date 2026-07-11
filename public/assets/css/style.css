@@ -425,6 +425,15 @@ tbody tr:last-child td { border-bottom: none; }
 .leaflet-container { border-radius: var(--rayon-sm); }
 /* Epingle coloree (divIcon) : pas de fond/bordure par defaut. */
 .pin-icon { background: none; border: none; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
+/* Bouton "Ma position" facon Google Maps / Yango. */
+.btn-ma-position {
+    width: 40px; height: 40px; border: none; border-radius: 8px;
+    background: var(--carte); color: var(--texte);
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.3); cursor: pointer;
+    font-size: 1.2rem; line-height: 40px; text-align: center; padding: 0;
+}
+.btn-ma-position:hover { background: var(--fond); }
+.btn-ma-position.charge { opacity: 0.5; cursor: progress; }
 
 /* --------------------------------------------------------- Adresses favorites */
 .fav-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.35rem 0 0.2rem; }

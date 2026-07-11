@@ -136,6 +136,7 @@ function initMap() {
     });
 
     tenterGeolocalisation();
+    ajouterBoutonMaPosition(map);
 }
 
 // Geocodage inverse : au clic sur la carte, renseigne le champ adresse avec le

@@ -132,3 +132,54 @@ function pinIcon(couleur) {
 // Couleurs de reference des points sur la carte.
 const PIN_ROUGE = '#e5484d'; // point de depart
 const PIN_VERT = '#2e9e4b';  // point d'arrivee
+
+// Ajoute un bouton "Ma position" sur la carte (facon Google Maps / Yango).
+// Au clic : geolocalise, centre la carte et affiche un point bleu avec le
+// cercle de precision. Rappel optionnel onLocate(lat, lng, precision).
+function ajouterBoutonMaPosition(map, onLocate) {
+    let posMarker = null, posCercle = null;
+
+    function localiser(btn) {
+        if (!navigator.geolocation) {
+            alert('La geolocalisation n\'est pas disponible sur cet appareil.');
+            return;
+        }
+        if (btn) { btn.classList.add('charge'); }
+        navigator.geolocation.getCurrentPosition((pos) => {
+            const lat = pos.coords.latitude, lng = pos.coords.longitude;
+            const precision = pos.coords.accuracy || 0;
+            const ll = [lat, lng];
+            if (!posMarker) {
+                posCercle = L.circle(ll, { radius: precision, color: '#1a73e8', weight: 1, fillColor: '#1a73e8', fillOpacity: 0.12 }).addTo(map);
+                posMarker = L.circleMarker(ll, { radius: 7, color: '#ffffff', weight: 3, fillColor: '#1a73e8', fillOpacity: 1 }).addTo(map).bindPopup('Vous etes ici');
+            } else {
+                posMarker.setLatLng(ll);
+                posCercle.setLatLng(ll).setRadius(precision);
+            }
+            map.setView(ll, 16);
+            if (btn) { btn.classList.remove('charge'); }
+            if (typeof onLocate === 'function') { onLocate(lat, lng, precision); }
+        }, () => {
+            if (btn) { btn.classList.remove('charge'); }
+            alert('Impossible d\'obtenir votre position. Autorisez la localisation dans votre navigateur.');
+        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    }
+
+    const Bouton = L.Control.extend({
+        options: { position: 'topright' },
+        onAdd: function () {
+            const btn = L.DomUtil.create('button', 'btn-ma-position');
+            btn.type = 'button';
+            btn.innerHTML = '📍';
+            btn.title = 'Ma position';
+            L.DomEvent.disableClickPropagation(btn);
+            L.DomEvent.on(btn, 'click', function (e) {
+                L.DomEvent.stop(e);
+                localiser(btn);
+            });
+            return btn;
+        },
+    });
+    new Bouton().addTo(map);
+    return { localiser };
+}

@@ -95,6 +95,7 @@ function initMap() {
     }).addTo(map);
     routesLayer = L.layerGroup().addTo(map);
     heatLayer = L.layerGroup().addTo(map);
+    ajouterBoutonMaPosition(map);
     map.on('moveend', () => { chargerPoints(); chargerRoutes(); chargerHeatmap(); });
     map.on('click', (e) => {
         if (!modeAjout) { return; }
