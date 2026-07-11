@@ -378,8 +378,9 @@ function brancherRechercheRepere(inputId, listId, cible) {
             if (adresses.length) {
                 html += '<div class="repere-head">Adresses (carte)</div>';
                 html += adresses.map(a =>
-                    `<div class="repere-item" data-lat="${a.latitude}" data-lng="${a.longitude}" data-nom="${escapeHtml(a.nom)}">
-                        ${escapeHtml(a.nom)} <span class="src">· 🗺️ OSM</span>
+                    `<div class="repere-item repere-osm" data-lat="${a.latitude}" data-lng="${a.longitude}" data-nom="${escapeHtml(a.nom)}" data-type="${escapeHtml(a.type || '')}">
+                        <span>${escapeHtml(a.nom)} <span class="src">· 🗺️ OSM</span></span>
+                        <button type="button" class="repere-save" title="Enregistrer comme repere collaboratif">＋ repere</button>
                     </div>`).join('');
             }
             liste.innerHTML = html;
@@ -389,6 +390,15 @@ function brancherRechercheRepere(inputId, listId, cible) {
                     choisir(parseFloat(el.dataset.lat), parseFloat(el.dataset.lng), el.dataset.nom);
                 });
             });
+            // Bouton "Enregistrer comme repere" : contribue le point OSM a la
+            // cartographie collaborative (sans selectionner l'adresse).
+            liste.querySelectorAll('.repere-save').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const el = btn.closest('.repere-item');
+                    enregistrerRepereOSM(el.dataset.nom, parseFloat(el.dataset.lat), parseFloat(el.dataset.lng), el.dataset.type);
+                });
+            });
         }, 350);
     });
 
@@ -396,6 +406,27 @@ function brancherRechercheRepere(inputId, listId, cible) {
     document.addEventListener('click', (e) => {
         if (e.target !== input && !liste.contains(e.target)) { fermer(); }
     });
+}
+
+// Correspondance type OSM -> categorie de repere collaboratif.
+const OSM_CATEGORIE = {
+    pharmacy: 'sante', hospital: 'sante', clinic: 'sante', doctors: 'sante',
+    school: 'education', university: 'education', college: 'education', kindergarten: 'education',
+    marketplace: 'commerce', supermarket: 'commerce', bakery: 'commerce', mall: 'commerce', convenience: 'commerce', shop: 'commerce',
+    townhall: 'service_public', police: 'service_public', post_office: 'service_public', bank: 'service_public', courthouse: 'service_public',
+    neighbourhood: 'quartier', suburb: 'quartier', quarter: 'quartier',
+};
+
+async function enregistrerRepereOSM(nom, lat, lng, type) {
+    const categorie = OSM_CATEGORIE[type] || 'repere';
+    try {
+        const res = await Api.post('/api/map/point_add.php', {
+            nom: nom, categorie: categorie, latitude: lat, longitude: lng,
+        });
+        document.getElementById('alert-zone').innerHTML = `<div class="alert alert-succes">${escapeHtml(res.message)}</div>`;
+    } catch (err) {
+        document.getElementById('alert-zone').innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
+    }
 }
 
 // --- Recommander une commande (pre-remplissage depuis une commande passee) ---
