@@ -132,6 +132,18 @@ function creer_notification(PDO $db, int $userId, string $titre, string $message
     }
 }
 
+/**
+ * URL d'un asset avec cache-busting : ajoute ?v=<date de modification> pour que
+ * le navigateur recharge le fichier des qu'il change (evite les JS/CSS obsoletes
+ * en cache apres une mise a jour).
+ */
+function asset_url(string $chemin): string
+{
+    $abs = APP_ROOT . '/public' . $chemin;
+    $version = is_file($abs) ? filemtime($abs) : date('Ymd');
+    return $chemin . '?v=' . $version;
+}
+
 function csrf_token(): string
 {
     if (empty($_SESSION['csrf_token'])) {

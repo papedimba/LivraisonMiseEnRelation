@@ -7,6 +7,7 @@ require __DIR__ . '/../includes/header.php';
 ?>
 <link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.css">
 <script src="/assets/vendor/leaflet/leaflet.js"></script>
+<script>window.L||document.write('<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><scr'+'ipt src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/scr'+'ipt>');</script>
 
 <h1>Ma boutique</h1>
 <div id="alert-zone"></div>

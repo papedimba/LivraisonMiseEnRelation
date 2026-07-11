@@ -5,7 +5,7 @@ require_page_role('livreur');
 $pageTitle = 'Courses disponibles';
 require __DIR__ . '/../includes/header.php';
 ?>
-<script src="/assets/js/chat.js"></script>
+<script src="<?= asset_url('/assets/js/chat.js') ?>"></script>
 <div class="flex-between">
     <div>
         <h1>Courses disponibles</h1>

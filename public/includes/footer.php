@@ -13,9 +13,9 @@
     <?php endforeach; ?>
 </nav>
 <?php endif; ?>
-<script src="/assets/js/pwa.js"></script>
+<script src="<?= asset_url('/assets/js/pwa.js') ?>"></script>
 <?php if (Auth::check()): ?>
-<script src="/assets/js/push.js"></script>
+<script src="<?= asset_url('/assets/js/push.js') ?>"></script>
 <?php endif; ?>
 </body>
 </html>

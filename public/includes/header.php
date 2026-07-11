@@ -56,9 +56,9 @@ function nav_actif(string $href, string $courant): bool
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="<?= htmlspecialchars(APP_NOM) ?>">
-<link rel="stylesheet" href="/assets/css/style.css">
-<script src="/assets/js/api.js"></script>
-<script src="/assets/js/app.js"></script>
+<link rel="stylesheet" href="<?= asset_url('/assets/css/style.css') ?>">
+<script src="<?= asset_url('/assets/js/api.js') ?>"></script>
+<script src="<?= asset_url('/assets/js/app.js') ?>"></script>
 </head>
 <body>
 <header class="topbar">
