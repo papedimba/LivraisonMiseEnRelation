@@ -445,6 +445,8 @@ tbody tr:last-child td { border-bottom: none; }
 .repere-item:hover { background: var(--primaire-clair); }
 .repere-item + .repere-item { border-top: 1px solid var(--bordure); }
 .repere-item .cat { color: var(--texte-doux); font-size: 0.78rem; }
+.repere-head { padding: 0.35rem 0.7rem; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--texte-doux); background: var(--carte-2); }
+.repere-item .src { color: var(--texte-doux); font-size: 0.78rem; }
 
 /* ------------------------------------------------------------ Messagerie chat */
 .chat-messages {

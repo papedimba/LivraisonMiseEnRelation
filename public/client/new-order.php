@@ -338,38 +338,58 @@ function brancherRechercheRepere(inputId, listId, cible) {
 
     const fermer = () => { liste.classList.add('hidden'); liste.innerHTML = ''; };
 
+    function choisir(lat, lng, nom) {
+        if (cible === 'depart') {
+            placerDepart(lat, lng);
+            document.getElementById('adresse_depart').value = nom;
+        } else {
+            placerArrivee(lat, lng);
+            document.getElementById('adresse_arrivee').value = nom;
+        }
+        input.value = '';
+        fermer();
+        map.panTo([lat, lng]);
+        estimer();
+    }
+
     input.addEventListener('input', () => {
         clearTimeout(minuteur);
         const q = input.value.trim();
-        if (q.length < 2) { fermer(); return; }
+        if (q.length < 3) { fermer(); return; }
         minuteur = setTimeout(async () => {
-            try {
-                const res = await Api.get('/api/public/map_points.php?q=' + encodeURIComponent(q));
-                const points = (res.data.points || []).slice(0, 8);
-                if (!points.length) { fermer(); return; }
-                liste.innerHTML = points.map(p =>
+            // Deux sources en parallele : reperes collaboratifs + adresses OSM.
+            const [reperesRes, geoRes] = await Promise.allSettled([
+                Api.get('/api/public/map_points.php?q=' + encodeURIComponent(q)),
+                Api.get('/api/public/geocode.php?q=' + encodeURIComponent(q)),
+            ]);
+            const reperes = reperesRes.status === 'fulfilled' ? (reperesRes.value.data.points || []).slice(0, 6) : [];
+            const adresses = geoRes.status === 'fulfilled' ? (geoRes.value.data.resultats || []).slice(0, 6) : [];
+
+            if (!reperes.length && !adresses.length) { fermer(); return; }
+
+            let html = '';
+            if (reperes.length) {
+                html += '<div class="repere-head">Reperes CityHub</div>';
+                html += reperes.map(p =>
                     `<div class="repere-item" data-lat="${p.latitude}" data-lng="${p.longitude}" data-nom="${escapeHtml(p.nom)}">
                         ${escapeHtml(p.nom)} <span class="cat">· ${escapeHtml(p.categorie)} · 👍 ${p.confirmations}</span>
                     </div>`).join('');
-                liste.classList.remove('hidden');
-                liste.querySelectorAll('.repere-item').forEach(el => {
-                    el.addEventListener('click', () => {
-                        const lat = parseFloat(el.dataset.lat), lng = parseFloat(el.dataset.lng);
-                        if (cible === 'depart') {
-                            placerDepart(lat, lng);
-                            document.getElementById('adresse_depart').value = el.dataset.nom;
-                        } else {
-                            placerArrivee(lat, lng);
-                            document.getElementById('adresse_arrivee').value = el.dataset.nom;
-                        }
-                        input.value = '';
-                        fermer();
-                        map.panTo([lat, lng]);
-                        estimer();
-                    });
+            }
+            if (adresses.length) {
+                html += '<div class="repere-head">Adresses (carte)</div>';
+                html += adresses.map(a =>
+                    `<div class="repere-item" data-lat="${a.latitude}" data-lng="${a.longitude}" data-nom="${escapeHtml(a.nom)}">
+                        ${escapeHtml(a.nom)} <span class="src">· 🗺️ OSM</span>
+                    </div>`).join('');
+            }
+            liste.innerHTML = html;
+            liste.classList.remove('hidden');
+            liste.querySelectorAll('.repere-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    choisir(parseFloat(el.dataset.lat), parseFloat(el.dataset.lng), el.dataset.nom);
                 });
-            } catch (err) { fermer(); }
-        }, 300);
+            });
+        }, 350);
     });
 
     // Ferme la liste si on clique ailleurs.

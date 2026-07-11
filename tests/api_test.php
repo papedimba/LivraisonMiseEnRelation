@@ -322,6 +322,14 @@ function tests_api(string $base): void
     t_eq(200, $r['code'], 'un utilisateur confirme le point');
     t_eq(1, $r['body']['data']['confirmations'] ?? 0, 'une confirmation comptee');
 
+    // -- Geocodage d'adresses (OSM) --------------------------------------------
+    t_section('Geocodage OSM');
+    $r = $client->get('/api/public/geocode.php?q=ab');
+    t_eq(422, $r['code'], 'requete de geocodage trop courte rejetee');
+    $r = $client->get('/api/public/geocode.php?q=bouake');
+    t_eq(200, $r['code'], 'geocodage repond (liste vide toleree hors ligne)');
+    t_ok(is_array($r['body']['data']['resultats'] ?? null), 'les resultats de geocodage forment une liste');
+
     // -- Securite --------------------------------------------------------------
     t_section('Controle d\'acces');
     $anon = new TestHttp($base);
