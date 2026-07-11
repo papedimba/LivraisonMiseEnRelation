@@ -113,3 +113,22 @@ function badgeStatut(statut) {
     const info = STATUT_LABELS[statut] || { label: statut, classe: 'tag-info' };
     return `<span class="tag ${info.classe}">${info.label}</span>`;
 }
+
+// Epingle Leaflet coloree (SVG en ligne, sans image externe). A appeler quand
+// Leaflet (L) est charge sur la page.
+function pinIcon(couleur) {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 28 40">'
+        + '<path d="M14 0C6.3 0 0 6.3 0 14c0 10.5 14 26 14 26s14-15.5 14-26C28 6.3 21.7 0 14 0z" fill="' + couleur + '"/>'
+        + '<circle cx="14" cy="14" r="5.5" fill="#ffffff"/></svg>';
+    return L.divIcon({
+        html: svg,
+        className: 'pin-icon',
+        iconSize: [28, 40],
+        iconAnchor: [14, 40],
+        popupAnchor: [0, -36],
+    });
+}
+
+// Couleurs de reference des points sur la carte.
+const PIN_ROUGE = '#e5484d'; // point de depart
+const PIN_VERT = '#2e9e4b';  // point d'arrivee

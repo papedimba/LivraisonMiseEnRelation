@@ -423,6 +423,8 @@ tbody tr:last-child td { border-bottom: none; }
 /* ----------------------------------------------------------------------- Map */
 #map { width: 100%; height: 320px; border-radius: var(--rayon-sm); border: 1px solid var(--bordure); z-index: 1; }
 .leaflet-container { border-radius: var(--rayon-sm); }
+/* Epingle coloree (divIcon) : pas de fond/bordure par defaut. */
+.pin-icon { background: none; border: none; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
 
 /* --------------------------------------------------------- Adresses favorites */
 .fav-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.35rem 0 0.2rem; }

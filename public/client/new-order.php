@@ -24,7 +24,7 @@ require __DIR__ . '/../includes/header.php';
         </div>
 
         <div class="form-group">
-            <label>Point de depart <span class="text-muted">(marqueur orange)</span></label>
+            <label>Point de depart <span class="text-muted">(marqueur rouge)</span></label>
             <div class="repere-search">
                 <input type="text" id="adresse_depart" autocomplete="off" placeholder="🔎 Repere, adresse, ou cliquez sur la carte">
                 <div class="repere-suggestions hidden" id="sug-depart"></div>
@@ -46,7 +46,7 @@ require __DIR__ . '/../includes/header.php';
 
         <div class="flex mt-1" style="align-items:center;">
             <span class="text-muted">Modifier sur la carte :</span>
-            <button type="button" class="btn btn-sm cible-btn actif" data-cible="depart">🟠 Depart</button>
+            <button type="button" class="btn btn-sm cible-btn actif" data-cible="depart">🔴 Depart</button>
             <button type="button" class="btn btn-sm btn-ghost cible-btn" data-cible="arrivee">🟢 Arrivee</button>
         </div>
         <div id="map" class="mt-1"></div>
@@ -174,7 +174,7 @@ function tenterGeolocalisation() {
 function placerDepart(lat, lng) {
     coords.depart = L.latLng(lat, lng);
     if (!markerDepart) {
-        markerDepart = L.marker(coords.depart, { title: 'Depart', draggable: true }).addTo(map).bindPopup('Depart (glissez pour ajuster)');
+        markerDepart = L.marker(coords.depart, { title: 'Depart', draggable: true, icon: pinIcon(PIN_ROUGE) }).addTo(map).bindPopup('Depart (glissez pour ajuster)');
         markerDepart.on('dragend', () => {
             const ll = markerDepart.getLatLng();
             coords.depart = ll;
@@ -189,7 +189,7 @@ function placerDepart(lat, lng) {
 function placerArrivee(lat, lng) {
     coords.arrivee = L.latLng(lat, lng);
     if (!markerArrivee) {
-        markerArrivee = L.marker(coords.arrivee, { title: 'Arrivee', draggable: true }).addTo(map).bindPopup('Arrivee (glissez pour ajuster)');
+        markerArrivee = L.marker(coords.arrivee, { title: 'Arrivee', draggable: true, icon: pinIcon(PIN_VERT) }).addTo(map).bindPopup('Arrivee (glissez pour ajuster)');
         markerArrivee.on('dragend', () => {
             const ll = markerArrivee.getLatLng();
             coords.arrivee = ll;

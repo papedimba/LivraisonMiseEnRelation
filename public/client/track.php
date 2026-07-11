@@ -97,8 +97,8 @@ function renderDetails(c) {
     }
 
     if (!markerDepart) {
-        markerDepart = L.marker([c.lat_depart, c.lng_depart]).addTo(map).bindPopup('Depart');
-        markerArrivee = L.marker([c.lat_arrivee, c.lng_arrivee]).addTo(map).bindPopup('Arrivee');
+        markerDepart = L.marker([c.lat_depart, c.lng_depart], { icon: pinIcon(PIN_ROUGE) }).addTo(map).bindPopup('Depart');
+        markerArrivee = L.marker([c.lat_arrivee, c.lng_arrivee], { icon: pinIcon(PIN_VERT) }).addTo(map).bindPopup('Arrivee');
         map.fitBounds([[c.lat_depart, c.lng_depart], [c.lat_arrivee, c.lng_arrivee]]);
     }
 
