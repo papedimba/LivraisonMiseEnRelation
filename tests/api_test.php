@@ -113,12 +113,21 @@ function tests_api(string $base): void
     $r = $client->get('/api/public/routes.php?bbox=7.6,-5.1,7.8,-5.0');
     t_eq(200, $r['code'], 'endpoint des routes accessible');
     $routeTrouvee = false;
+    $caleDefini = true;
     foreach ($r['body']['data']['routes'] ?? [] as $rt) {
+        if (!array_key_exists('cale', $rt)) { $caleDefini = false; }
         if ((int) $rt['commande_id'] === (int) $commandeId && count($rt['points']) >= 2) {
             $routeTrouvee = true;
         }
     }
     t_ok($routeTrouvee, 'la route parcourue par le livreur est reconstituee (polyligne)');
+    t_ok($caleDefini, 'chaque route indique si elle est calee sur les rues (map-matching)');
+
+    // Heatmap : les zones des livraisons terminees sont agregees.
+    $r = $client->get('/api/public/heatmap.php');
+    t_eq(200, $r['code'], 'heatmap accessible');
+    t_ok(($r['body']['data']['poids_max'] ?? 0) >= 1 && count($r['body']['data']['cellules'] ?? []) >= 1,
+        'la heatmap agrege au moins une zone desservie');
 
     // -- Evaluation ------------------------------------------------------------
     t_section('Evaluation');

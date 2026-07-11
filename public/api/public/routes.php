@@ -45,12 +45,27 @@ foreach ($stmt->fetchAll() as $row) {
     $parCommande[(int) $row['commande_id']][] = [(float) $row['latitude'], (float) $row['longitude']];
 }
 
+// Traces calees sur les rues (map-matching OSRM) disponibles pour ces courses.
+$matchees = [];
+$ids = array_keys($parCommande);
+if (!empty($ids)) {
+    $in = implode(',', array_map('intval', $ids));
+    foreach ($db->query("SELECT commande_id, geojson FROM routes_matchees WHERE commande_id IN ({$in})")->fetchAll() as $m) {
+        $decode = json_decode((string) $m['geojson'], true);
+        if (is_array($decode) && count($decode) >= 2) {
+            $matchees[(int) $m['commande_id']] = $decode;
+        }
+    }
+}
+
 $routes = [];
 foreach ($parCommande as $commandeId => $points) {
-    if (count($points) < 2) {
-        continue; // une polyligne exige au moins deux points
+    // Priorite a la geometrie calee sur les rues si elle existe.
+    if (isset($matchees[$commandeId])) {
+        $routes[] = ['commande_id' => $commandeId, 'points' => $matchees[$commandeId], 'cale' => true];
+    } elseif (count($points) >= 2) {
+        $routes[] = ['commande_id' => $commandeId, 'points' => $points, 'cale' => false];
     }
-    $routes[] = ['commande_id' => $commandeId, 'points' => $points];
 }
 
 Response::success(['routes' => $routes, 'nombre' => count($routes)]);

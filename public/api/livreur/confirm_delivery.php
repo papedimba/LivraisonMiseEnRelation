@@ -100,4 +100,12 @@ try {
     error_log('Carto auto-feed error: ' . $e->getMessage());
 }
 
+// Map-matching OSRM : cale la trace de la course sur les rues (en cache).
+try {
+    require_once __DIR__ . '/../../../includes/osrm.php';
+    route_matcher_commande($db, $commandeId);
+} catch (Throwable $e) {
+    error_log('OSRM match error: ' . $e->getMessage());
+}
+
 Response::success(['statut' => 'livree', 'preuve' => $preuveType], 'Livraison confirmee.');

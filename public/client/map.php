@@ -25,10 +25,14 @@ require __DIR__ . '/../includes/header.php';
             <button id="btn-mode-ajout" class="btn btn-secondaire">📍 Ajouter un point</button>
         </div>
     </div>
-    <div class="mt-1">
+    <div class="mt-1" style="display:flex;flex-direction:column;gap:0.35rem;">
         <label style="display:inline-flex;align-items:center;gap:0.4rem;">
             <input type="checkbox" id="toggle-routes" style="width:auto;display:inline-block;">
             🛣️ Afficher les routes parcourues par les livreurs
+        </label>
+        <label style="display:inline-flex;align-items:center;gap:0.4rem;">
+            <input type="checkbox" id="toggle-heatmap" style="width:auto;display:inline-block;">
+            🔥 Zones les plus desservies (heatmap)
         </label>
     </div>
     <div id="aide-ajout" class="alert alert-info hidden" style="margin-top:0.75rem;">
@@ -82,6 +86,7 @@ const CATS = {
 let map, modeAjout = false, pointChoisi = null;
 let marqueurs = {};
 let routesLayer = null; // couche des routes parcourues par les livreurs
+let heatLayer = null;   // couche heatmap des zones desservies
 
 function initMap() {
     map = L.map('map').setView([7.6900, -5.0300], 13);
@@ -89,7 +94,8 @@ function initMap() {
         attribution: '&copy; OpenStreetMap contributors', maxZoom: 19,
     }).addTo(map);
     routesLayer = L.layerGroup().addTo(map);
-    map.on('moveend', () => { chargerPoints(); chargerRoutes(); });
+    heatLayer = L.layerGroup().addTo(map);
+    map.on('moveend', () => { chargerPoints(); chargerRoutes(); chargerHeatmap(); });
     map.on('click', (e) => {
         if (!modeAjout) { return; }
         pointChoisi = e.latlng;
@@ -149,7 +155,11 @@ async function chargerRoutes() {
         const res = await Api.get('/api/public/routes.php?bbox=' + encodeURIComponent(bbox));
         routesLayer.clearLayers();
         (res.data.routes || []).forEach(rt => {
-            L.polyline(rt.points, { color: '#3b82c4', weight: 3, opacity: 0.5 }).addTo(routesLayer);
+            // Trait plein = trace calee sur les rues (OSRM) ; pointille = trace GPS brute.
+            const style = rt.cale
+                ? { color: '#3b82c4', weight: 4, opacity: 0.65 }
+                : { color: '#3b82c4', weight: 3, opacity: 0.45, dashArray: '5,6' };
+            L.polyline(rt.points, style).addTo(routesLayer);
         });
     } catch (err) { /* silencieux */ }
 }
@@ -159,6 +169,35 @@ document.getElementById('toggle-routes').addEventListener('change', (e) => {
         chargerRoutes();
     } else if (routesLayer) {
         routesLayer.clearLayers();
+    }
+});
+
+// Heatmap des zones les plus desservies : cellules coloriees par intensite
+// (teinte unique, opacite et rayon croissant avec le nombre de livraisons).
+async function chargerHeatmap() {
+    if (!document.getElementById('toggle-heatmap').checked) { return; }
+    try {
+        const res = await Api.get('/api/public/heatmap.php');
+        heatLayer.clearLayers();
+        const max = res.data.poids_max || 1;
+        (res.data.cellules || []).forEach(c => {
+            const intensite = c.poids / max;           // 0..1
+            const rayon = 14 + intensite * 26;          // px
+            L.circleMarker([c.lat, c.lng], {
+                radius: rayon,
+                stroke: false,
+                fillColor: '#f26522',
+                fillOpacity: 0.15 + intensite * 0.5,
+            }).addTo(heatLayer).bindPopup(c.poids + ' livraison(s) dans cette zone');
+        });
+    } catch (err) { /* silencieux */ }
+}
+
+document.getElementById('toggle-heatmap').addEventListener('change', (e) => {
+    if (e.target.checked) {
+        chargerHeatmap();
+    } else if (heatLayer) {
+        heatLayer.clearLayers();
     }
 });
 

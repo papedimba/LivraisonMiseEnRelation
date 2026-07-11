@@ -491,6 +491,16 @@ CREATE TABLE IF NOT EXISTS points_carte_votes (
     UNIQUE KEY uq_pointvote (point_id, user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ----------------------------------------------------------------------------
+-- Traces de livraison calees sur les rues (map-matching OSRM, en cache)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS routes_matchees (
+    commande_id INT UNSIGNED PRIMARY KEY,
+    geojson MEDIUMTEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_routematch_commande FOREIGN KEY (commande_id) REFERENCES commandes(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================================
@@ -545,7 +555,8 @@ INSERT INTO parametres (cle, valeur) VALUES
 ('surge_ratio_seuil', '2'),
 ('surge_facteur_demande', '1.3'),
 ('carto_auto_alimentation', '1'),
-('carto_auto_rayon_m', '40');
+('carto_auto_rayon_m', '40'),
+('route_matching', '1');
 
 -- Compte admin par defaut (mot de passe: ChangeMoi123! - a changer immediatement)
 -- Hash genere avec password_hash('ChangeMoi123!', PASSWORD_BCRYPT)
