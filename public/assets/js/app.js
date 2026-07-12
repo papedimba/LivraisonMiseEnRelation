@@ -183,3 +183,97 @@ function ajouterBoutonMaPosition(map, onLocate) {
     new Bouton().addTo(map);
     return { localiser };
 }
+
+// Geocodage inverse (coordonnees -> libelle d'adresse), best-effort. En cas
+// d'echec reseau, renvoie un libelle base sur les coordonnees pour que le
+// livreur ait toujours une reference exploitable.
+async function reverseGeocode(lat, lng) {
+    try {
+        const res = await Api.get('/api/public/geocode_reverse.php?lat=' + lat + '&lng=' + lng);
+        if (res.data && res.data.adresse) {
+            return res.data.adresse;
+        }
+    } catch (e) { /* repli ci-dessous */ }
+    return 'Point sur la carte (' + Number(lat).toFixed(5) + ', ' + Number(lng).toFixed(5) + ')';
+}
+
+// Champ d'adresse fusionne (recherche + saisie) : autocomplete a deux sources,
+// les reperes collaboratifs CityHub et les adresses OSM (geocodage). Generique,
+// reutilisable sur toutes les pages de commande.
+//   input : l'element <input> du champ adresse
+//   liste : l'element conteneur des suggestions (.repere-suggestions)
+//   opts.getCenter()          -> {lat,lng} pour ancrer la recherche sur la zone (optionnel)
+//   opts.onSelect(lat,lng,nom) -> appele quand l'utilisateur choisit un resultat
+//   opts.onSaveRepere(nom,lat,lng,type) -> si fourni, affiche un bouton "+ repere" sur les resultats OSM
+function brancherRechercheAdresse(input, liste, opts) {
+    opts = opts || {};
+    let minuteur = null;
+    const fermer = () => { liste.classList.add('hidden'); liste.innerHTML = ''; };
+
+    function choisir(lat, lng, nom) {
+        input.value = nom;
+        fermer();
+        if (typeof opts.onSelect === 'function') { opts.onSelect(lat, lng, nom); }
+    }
+
+    input.addEventListener('input', () => {
+        clearTimeout(minuteur);
+        const q = input.value.trim();
+        if (q.length < 3) { fermer(); return; }
+        minuteur = setTimeout(async () => {
+            // Ancrage sur la zone/ville affichee pour ne retourner que les
+            // reperes et adresses proches du client.
+            let geo = '';
+            if (typeof opts.getCenter === 'function') {
+                const centre = opts.getCenter();
+                if (centre) { geo = '&lat=' + centre.lat + '&lng=' + centre.lng + '&rayon_km=40'; }
+            }
+            const [reperesRes, geoRes] = await Promise.allSettled([
+                Api.get('/api/public/map_points.php?q=' + encodeURIComponent(q) + geo),
+                Api.get('/api/public/geocode.php?q=' + encodeURIComponent(q) + geo),
+            ]);
+            const reperes = reperesRes.status === 'fulfilled' ? (reperesRes.value.data.points || []).slice(0, 6) : [];
+            const adresses = geoRes.status === 'fulfilled' ? (geoRes.value.data.resultats || []).slice(0, 6) : [];
+
+            if (!reperes.length && !adresses.length) { fermer(); return; }
+
+            let html = '';
+            if (reperes.length) {
+                html += '<div class="repere-head">Reperes CityHub</div>';
+                html += reperes.map(p =>
+                    `<div class="repere-item" data-lat="${p.latitude}" data-lng="${p.longitude}" data-nom="${escapeHtml(p.nom)}">
+                        ${escapeHtml(p.nom)} <span class="cat">· ${escapeHtml(p.categorie)} · 👍 ${p.confirmations}</span>
+                    </div>`).join('');
+            }
+            if (adresses.length) {
+                html += '<div class="repere-head">Adresses (carte)</div>';
+                html += adresses.map(a =>
+                    `<div class="repere-item repere-osm" data-lat="${a.latitude}" data-lng="${a.longitude}" data-nom="${escapeHtml(a.nom)}" data-type="${escapeHtml(a.type || '')}">
+                        <span>${escapeHtml(a.nom)} <span class="src">· 🗺️ OSM</span></span>
+                        ${opts.onSaveRepere ? '<button type="button" class="repere-save" title="Enregistrer comme repere collaboratif">＋ repere</button>' : ''}
+                    </div>`).join('');
+            }
+            liste.innerHTML = html;
+            liste.classList.remove('hidden');
+            liste.querySelectorAll('.repere-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    choisir(parseFloat(el.dataset.lat), parseFloat(el.dataset.lng), el.dataset.nom);
+                });
+            });
+            if (typeof opts.onSaveRepere === 'function') {
+                liste.querySelectorAll('.repere-save').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const el = btn.closest('.repere-item');
+                        opts.onSaveRepere(el.dataset.nom, parseFloat(el.dataset.lat), parseFloat(el.dataset.lng), el.dataset.type);
+                    });
+                });
+            }
+        }, 350);
+    });
+
+    // Ferme la liste si on clique ailleurs.
+    document.addEventListener('click', (e) => {
+        if (e.target !== input && !liste.contains(e.target)) { fermer(); }
+    });
+}

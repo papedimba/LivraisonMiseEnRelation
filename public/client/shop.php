@@ -31,8 +31,11 @@ require __DIR__ . '/../includes/header.php';
             <select id="type_livraison"></select>
         </div>
         <div class="form-group">
-            <label>Adresse de livraison <span class="text-muted">(cliquez sur la carte)</span></label>
-            <input type="text" id="adresse_arrivee" placeholder="Ou sera livree la commande ?">
+            <label>Adresse de livraison <span class="text-muted">(marqueur vert)</span></label>
+            <div class="repere-search">
+                <input type="text" id="adresse_arrivee" autocomplete="off" placeholder="🔎 Repere, adresse, ou cliquez sur la carte">
+                <div class="repere-suggestions hidden" id="sug-arrivee"></div>
+            </div>
         </div>
         <div id="map" style="height:220px;"></div>
         <p class="text-muted mt-1" id="hint-depart"></p>
@@ -67,30 +70,51 @@ var departFixe = false;
 function initMap(latShop, lngShop) {
     map = L.map('map').setView([latShop || 7.69, lngShop || -5.03], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap'
+        attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
     if (latShop && lngShop) {
         coordDepart = { lat: latShop, lng: lngShop };
-        markerDepart = L.marker([latShop, lngShop]).addTo(map).bindPopup('Boutique (depart)');
+        markerDepart = L.marker([latShop, lngShop], { icon: pinIcon(PIN_ROUGE) }).addTo(map).bindPopup('Boutique (depart)');
         departFixe = true;
-        document.getElementById('hint-depart').textContent = 'Depart : la boutique. Cliquez sur la carte pour definir le lieu de livraison.';
+        document.getElementById('hint-depart').textContent = 'Depart : la boutique (marqueur rouge). Cliquez sur la carte, recherchez ou glissez le marqueur vert pour definir le lieu de livraison.';
     } else {
-        document.getElementById('hint-depart').textContent = 'La boutique n\'a pas de position enregistree : 1er clic = depart, 2e clic = livraison.';
+        document.getElementById('hint-depart').textContent = 'La boutique n\'a pas de position enregistree : 1er clic = depart (rouge), 2e clic = livraison (vert).';
     }
 
     map.on('click', function (e) {
         if (!departFixe && !coordDepart) {
             coordDepart = e.latlng;
-            markerDepart = L.marker(e.latlng).addTo(map).bindPopup('Depart');
-        } else if (!coordArrivee) {
-            coordArrivee = e.latlng;
-            markerArrivee = L.marker(e.latlng).addTo(map).bindPopup('Livraison');
+            markerDepart = L.marker(e.latlng, { icon: pinIcon(PIN_ROUGE) }).addTo(map).bindPopup('Depart');
         } else {
-            coordArrivee = e.latlng;
-            markerArrivee.setLatLng(e.latlng);
+            placerArrivee(e.latlng.lat, e.latlng.lng);
+            remplirAdresseArrivee(e.latlng.lat, e.latlng.lng);
         }
     });
+
+    ajouterBoutonMaPosition(map);
+}
+
+// Place / deplace le marqueur de livraison (vert, draggable). Au relachement,
+// on renseigne l'adresse par geocodage inverse.
+function placerArrivee(lat, lng) {
+    coordArrivee = L.latLng(lat, lng);
+    if (!markerArrivee) {
+        markerArrivee = L.marker(coordArrivee, { draggable: true, icon: pinIcon(PIN_VERT) }).addTo(map).bindPopup('Livraison (glissez pour ajuster)');
+        markerArrivee.on('dragend', function () {
+            var ll = markerArrivee.getLatLng();
+            coordArrivee = ll;
+            remplirAdresseArrivee(ll.lat, ll.lng);
+        });
+    } else {
+        markerArrivee.setLatLng(coordArrivee);
+    }
+}
+
+// Geocodage inverse : renseigne le champ adresse de livraison a partir des
+// coordonnees (best-effort, avec repli sur les coordonnees).
+async function remplirAdresseArrivee(lat, lng) {
+    document.getElementById('adresse_arrivee').value = await reverseGeocode(lat, lng);
 }
 
 async function chargerBoutique() {
@@ -109,7 +133,7 @@ async function chargerBoutique() {
         } else {
             zone.innerHTML = produits.map(function (p) {
                 produitsMap[p.id] = p;
-                return '<div class="flex-between" style="border-bottom:1px solid var(--couleur-bordure);padding:0.5rem 0;">'
+                return '<div class="flex-between" style="border-bottom:1px solid var(--bordure);padding:0.5rem 0;">'
                     + '<div><strong>' + escapeHtml(p.nom) + '</strong><br>'
                     + '<span class="text-muted">' + (p.description ? escapeHtml(p.description) + ' &middot; ' : '') + formatMontant(p.prix) + '</span></div>'
                     + '<button class="btn btn-sm" onclick="ajouterAuPanier(' + p.id + ')">Ajouter</button>'
@@ -117,7 +141,22 @@ async function chargerBoutique() {
             }).join('');
         }
 
-        initMap(b.latitude ? parseFloat(b.latitude) : null, b.longitude ? parseFloat(b.longitude) : null);
+        // La carte est isolee : meme si Leaflet echoue a charger, la boutique et
+        // le panier restent utilisables.
+        try {
+            initMap(b.latitude ? parseFloat(b.latitude) : null, b.longitude ? parseFloat(b.longitude) : null);
+            brancherRechercheAdresse(
+                document.getElementById('adresse_arrivee'),
+                document.getElementById('sug-arrivee'),
+                {
+                    getCenter: function () { return map ? map.getCenter() : null; },
+                    onSelect: function (lat, lng) { placerArrivee(lat, lng); map.panTo([lat, lng]); },
+                }
+            );
+        } catch (e) {
+            document.getElementById('hint-depart').textContent =
+                'La carte n\'a pas pu se charger. Verifiez votre connexion et rechargez la page.';
+        }
     } catch (err) {
         document.getElementById('entete-boutique').innerHTML = '<h1>Boutique indisponible</h1><p class="text-muted">' + escapeHtml(err.message) + '</p>';
     }
@@ -189,9 +228,11 @@ async function commander() {
     var ids = Object.keys(panier);
     if (ids.length === 0) { erreur('Votre panier est vide.'); return; }
     if (!coordDepart) { erreur('Veuillez definir le point de depart sur la carte.'); return; }
-    if (!coordArrivee) { erreur('Veuillez definir le lieu de livraison sur la carte.'); return; }
-    var adresseArrivee = document.getElementById('adresse_arrivee').value.trim();
-    if (!adresseArrivee) { erreur('Veuillez saisir l\'adresse de livraison.'); return; }
+    if (!coordArrivee) { erreur('Veuillez definir le lieu de livraison (recherche ou clic sur la carte).'); return; }
+    // Le libelle d'adresse est un complement : les coordonnees suffisent. Si le
+    // champ est vide, on genere un libelle base sur les coordonnees.
+    var adresseArrivee = document.getElementById('adresse_arrivee').value.trim()
+        || ('Point sur la carte (' + coordArrivee.lat.toFixed(5) + ', ' + coordArrivee.lng.toFixed(5) + ')');
 
     var produits = ids.map(function (id) {
         return { produit_id: parseInt(id, 10), quantite: panier[id].quantite };
