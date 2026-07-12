@@ -8,6 +8,8 @@ require __DIR__ . '/../includes/header.php';
 <h1>Bonjour <?= htmlspecialchars(explode(' ', $_SESSION['nom_complet'])[0]) ?> 👋</h1>
 <p class="subtitle">Que souhaitez-vous faire aujourd'hui ?</p>
 
+<div id="notif-statut" class="hidden mb-1"></div>
+
 <div class="grid grid-4 mb-1">
     <a class="card" href="/client/new-order.php">
         <h2>➕ Nouvelle commande</h2>

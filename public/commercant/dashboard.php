@@ -10,6 +10,7 @@ require __DIR__ . '/../includes/header.php';
 <script>window.L||document.write('<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><scr'+'ipt src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/scr'+'ipt>');</script>
 
 <h1>Ma boutique</h1>
+<div id="notif-statut" class="hidden mb-1"></div>
 <div id="alert-zone"></div>
 
 <div class="card">
