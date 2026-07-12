@@ -129,6 +129,50 @@ function tests_api(string $base): void
     t_ok(($r['body']['data']['poids_max'] ?? 0) >= 1 && count($r['body']['data']['cellules'] ?? []) >= 1,
         'la heatmap agrege au moins une zone desservie');
 
+    // -- Dette de commission (paiement especes) ---------------------------------
+    t_section('Dette de commission (paiement especes)');
+    // La commande $commandeId a ete payee en especes et livree : le livreur a
+    // encaisse le montant total en main propre, seule la commission est due a
+    // la plateforme (dette), pas de credit du solde retirable pour cette course.
+    $r = $livreur->get('/api/livreur/earnings.php');
+    $detteApresLivraisonEspeces = (float) ($r['body']['data']['dette_commission'] ?? -1);
+    t_ok($detteApresLivraisonEspeces > 0, 'une dette de commission est enregistree apres une livraison payee en especes');
+    t_eq(0.0, (float) ($r['body']['data']['solde_disponible'] ?? -1), 'le solde retirable n\'est pas credite pour une course payee en especes');
+
+    // L'admin voit ce livreur dans la liste des dettes en cours.
+    $r = $admin->get('/api/admin/livreurs_dettes.php');
+    $detteListee = null;
+    foreach ($r['body']['data']['livreurs'] ?? [] as $l) {
+        if ((int) $l['id'] === (int) $livreurId) { $detteListee = $l; }
+    }
+    t_ok($detteListee !== null, 'le livreur apparait dans la liste des dettes de commission');
+
+    // Retrait refuse : le solde retirable est nul tant que la dette n'est pas reglee.
+    $r = $livreur->post('/api/livreur/withdraw.php', [
+        'montant' => 100, 'methode' => 'orange_money', 'numero_reception' => '0700000000',
+    ]);
+    t_eq(422, $r['code'], 'retrait refuse : solde retirable insuffisant a cause de la dette');
+
+    // L'admin enregistre un reglement partiel puis total de la dette.
+    $moitie = round($detteApresLivraisonEspeces / 2, 2);
+    $r = $admin->post('/api/admin/livreur_dette_regler.php', ['livreur_id' => $livreurId, 'montant' => $moitie]);
+    t_eq(200, $r['code'], 'reglement partiel de la dette enregistre');
+
+    $r = $admin->post('/api/admin/livreur_dette_regler.php', [
+        'livreur_id' => $livreurId, 'montant' => $detteApresLivraisonEspeces + 1000,
+    ]);
+    t_eq(422, $r['code'], 'reglement superieur a la dette restante rejete');
+
+    $r = $livreur->get('/api/livreur/earnings.php');
+    $detteRestante = (float) ($r['body']['data']['dette_commission'] ?? -1);
+    t_ok($detteRestante > 0 && $detteRestante < $detteApresLivraisonEspeces, 'la dette diminue apres un reglement partiel');
+
+    $r = $admin->post('/api/admin/livreur_dette_regler.php', ['livreur_id' => $livreurId, 'montant' => $detteRestante]);
+    t_eq(200, $r['code'], 'reglement du solde de la dette');
+
+    $r = $livreur->get('/api/livreur/earnings.php');
+    t_eq(0.0, (float) ($r['body']['data']['dette_commission'] ?? -1), 'la dette de commission est soldee');
+
     // -- Evaluation ------------------------------------------------------------
     t_section('Evaluation');
     $r = $client->post('/api/client/rate.php', ['commande_id' => $commandeId, 'note' => 5, 'commentaire' => 'Parfait']);

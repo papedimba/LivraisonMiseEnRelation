@@ -38,13 +38,21 @@ $db = Database::getConnection();
 try {
     $db->beginTransaction();
 
-    $stmt = $db->prepare('SELECT solde FROM livreur_details WHERE user_id = :id FOR UPDATE');
+    $stmt = $db->prepare('SELECT solde, dette_commission FROM livreur_details WHERE user_id = :id FOR UPDATE');
     $stmt->execute(['id' => $livreurId]);
     $livreur = $stmt->fetch();
 
-    if (!$livreur || (float) $livreur['solde'] < $montant) {
+    // Le solde disponible au retrait est net de la dette de commission
+    // (courses payees en especes dont la commission n'a pas encore ete
+    // reversee a la plateforme).
+    $disponible = $livreur ? max(0, (float) $livreur['solde'] - (float) $livreur['dette_commission']) : 0;
+
+    if (!$livreur || $disponible < $montant) {
         $db->rollBack();
-        Response::error('Solde insuffisant.', 422);
+        $message = ((float) ($livreur['dette_commission'] ?? 0)) > 0
+            ? "Solde insuffisant (une dette de commission de {$livreur['dette_commission']} FCFA sur vos courses especes reduit votre solde retirable)."
+            : 'Solde insuffisant.';
+        Response::error($message, 422);
     }
 
     $db->prepare('UPDATE livreur_details SET solde = solde - :montant WHERE user_id = :id')

@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS livreur_details (
     longitude DECIMAL(10,7) DEFAULT NULL,
     derniere_position_at DATETIME DEFAULT NULL,
     solde DECIMAL(12,2) NOT NULL DEFAULT 0,
+    dette_commission DECIMAL(12,2) NOT NULL DEFAULT 0,
     note_moyenne DECIMAL(3,2) NOT NULL DEFAULT 5.00,
     nombre_courses INT UNSIGNED NOT NULL DEFAULT 0,
     valide_par INT UNSIGNED DEFAULT NULL,
@@ -268,6 +269,23 @@ CREATE TABLE IF NOT EXISTS retraits (
     CONSTRAINT fk_retrait_livreur FOREIGN KEY (livreur_id) REFERENCES users(id),
     KEY idx_retrait_livreur (livreur_id),
     KEY idx_retrait_statut (statut)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------------------------------------------------------
+-- Reglements de dette de commission (courses payees en especes : le livreur
+-- encaisse le montant total en main propre et doit reverser la commission a
+-- la plateforme periodiquement, ex. a l'agence).
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS reglements_dette (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    livreur_id INT UNSIGNED NOT NULL,
+    montant DECIMAL(12,2) NOT NULL,
+    admin_id INT UNSIGNED NOT NULL,
+    note VARCHAR(255) DEFAULT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_regdette_livreur FOREIGN KEY (livreur_id) REFERENCES users(id),
+    CONSTRAINT fk_regdette_admin FOREIGN KEY (admin_id) REFERENCES users(id),
+    KEY idx_regdette_livreur (livreur_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ----------------------------------------------------------------------------

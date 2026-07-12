@@ -10,7 +10,7 @@ $livreurId = Auth::requireRole('livreur');
 
 $db = Database::getConnection();
 
-$stmt = $db->prepare('SELECT solde, note_moyenne, nombre_courses FROM livreur_details WHERE user_id = :id');
+$stmt = $db->prepare('SELECT solde, dette_commission, note_moyenne, nombre_courses FROM livreur_details WHERE user_id = :id');
 $stmt->execute(['id' => $livreurId]);
 $livreur = $stmt->fetch();
 
@@ -25,8 +25,14 @@ function periode_gain(PDO $db, int $livreurId, string $interval): float
     return (float) $stmt->fetch()['total'];
 }
 
+$soldeBrut = (float) ($livreur['solde'] ?? 0);
+$dette = (float) ($livreur['dette_commission'] ?? 0);
+
 Response::success([
-    'solde_disponible' => (float) ($livreur['solde'] ?? 0),
+    // Net de la dette de commission (courses especes) : c'est le montant
+    // reellement retirable.
+    'solde_disponible' => max(0, $soldeBrut - $dette),
+    'dette_commission' => $dette,
     'note_moyenne' => (float) ($livreur['note_moyenne'] ?? 5),
     'nombre_courses' => (int) ($livreur['nombre_courses'] ?? 0),
     'gains_jour' => periode_gain($db, $livreurId, '1 DAY'),

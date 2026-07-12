@@ -28,11 +28,21 @@ function finaliser_livraison(PDO $db, array $commande, int $livreurId, string $p
 
     if ($commande['mode_paiement'] === 'especes') {
         $db->prepare("UPDATE commandes SET statut_paiement = 'paye' WHERE id = :id")->execute(['id' => $commandeId]);
-    }
 
-    $gainLivreur = round((float) $commande['montant_estime'] - (float) $commande['commission_montant'], 0);
-    $db->prepare('UPDATE livreur_details SET solde = solde + :gain, nombre_courses = nombre_courses + 1 WHERE user_id = :id')
-        ->execute(['gain' => $gainLivreur, 'id' => $livreurId]);
+        // Paiement especes : le livreur encaisse le montant total en main
+        // propre (son gain net est deja dans sa poche). Seule la commission
+        // due a la plateforme est enregistree comme dette, a reverser
+        // periodiquement (ex. a l'agence). On ne credite donc PAS le solde
+        // (portefeuille retirable) pour ne pas payer deux fois le meme gain.
+        $db->prepare('UPDATE livreur_details SET dette_commission = dette_commission + :dette, nombre_courses = nombre_courses + 1 WHERE user_id = :id')
+            ->execute(['dette' => (float) $commande['commission_montant'], 'id' => $livreurId]);
+    } else {
+        // Paiement electronique : la plateforme encaisse le montant total et
+        // reverse le gain net au livreur via son solde (retirable).
+        $gainLivreur = round((float) $commande['montant_estime'] - (float) $commande['commission_montant'], 0);
+        $db->prepare('UPDATE livreur_details SET solde = solde + :gain, nombre_courses = nombre_courses + 1 WHERE user_id = :id')
+            ->execute(['gain' => $gainLivreur, 'id' => $livreurId]);
+    }
 
     creer_notification(
         $db,

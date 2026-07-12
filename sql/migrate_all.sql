@@ -33,6 +33,12 @@ PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
 ALTER TABLE livreur_details
     MODIFY disponibilite ENUM('en_ligne','hors_ligne','pause') NOT NULL DEFAULT 'hors_ligne';
 
+-- livreur_details.dette_commission (commission due sur les courses payees en
+-- especes, encaissees directement par le livreur, a reverser periodiquement).
+SET @x := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='livreur_details' AND column_name='dette_commission');
+SET @s := IF(@x=0, 'ALTER TABLE livreur_details ADD COLUMN dette_commission DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER solde', 'DO 0');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
+
 -- --- Tables (creees seulement si absentes) -----------------------------------
 CREATE TABLE IF NOT EXISTS adresses_favorites (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -119,6 +125,18 @@ CREATE TABLE IF NOT EXISTS routes_matchees (
     geojson MEDIUMTEXT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_routematch_commande FOREIGN KEY (commande_id) REFERENCES commandes(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS reglements_dette (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    livreur_id INT UNSIGNED NOT NULL,
+    montant DECIMAL(12,2) NOT NULL,
+    admin_id INT UNSIGNED NOT NULL,
+    note VARCHAR(255) DEFAULT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_regdette_livreur FOREIGN KEY (livreur_id) REFERENCES users(id),
+    CONSTRAINT fk_regdette_admin FOREIGN KEY (admin_id) REFERENCES users(id),
+    KEY idx_regdette_livreur (livreur_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --- Cle etrangere commandes.moyen_transport_id (si absente) -----------------

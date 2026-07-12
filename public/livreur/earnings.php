@@ -7,6 +7,8 @@ require __DIR__ . '/../includes/header.php';
 ?>
 <h1>Mes gains</h1>
 
+<div id="alerte-dette"></div>
+
 <div class="grid grid-4 mb-1">
     <div class="stat-tile"><div class="label">Solde disponible</div><div class="valeur" id="stat-solde">-</div></div>
     <div class="stat-tile"><div class="label">Gains du jour</div><div class="valeur" id="stat-jour">-</div></div>
@@ -56,6 +58,14 @@ async function chargerGains() {
     document.getElementById('stat-mois').textContent = formatMontant(d.gains_mois);
     document.getElementById('stat-note').textContent = d.note_moyenne + ' / 5';
     document.getElementById('stat-courses').textContent = d.nombre_courses + ' course(s) effectuee(s)';
+
+    // Dette de commission sur les courses payees en especes (encaissees en
+    // main propre) : reduit le solde retirable tant qu'elle n'est pas reglee.
+    const alerte = document.getElementById('alerte-dette');
+    alerte.innerHTML = d.dette_commission > 0
+        ? `<div class="alert alert-info mb-1">Vous devez <strong>${formatMontant(d.dette_commission)}</strong> de commission sur vos courses payees en especes.
+            Reglez ce montant aupres de votre agence CityHub : il reduit votre solde retirable jusqu'a son reglement.</div>`
+        : '';
 }
 
 document.getElementById('withdraw-form').addEventListener('submit', async (e) => {

@@ -55,6 +55,44 @@ require __DIR__ . '/../includes/header.php';
     <div class="stat-tile"><div class="label">Utilisateurs actifs</div><div class="valeur" id="stat-users">-</div></div>
 </div>
 
+<div class="grid grid-2 mb-1">
+    <div class="card">
+        <div class="flex-between">
+            <h2 style="margin-top:0;">Dettes de commission (courses especes)</h2>
+            <span class="text-muted" id="dette-total" style="font-size:0.85rem;"></span>
+        </div>
+        <p class="text-muted" style="font-size:0.85rem;">
+            Livreurs ayant encaisse une course en especes : ils doivent reverser la commission a la plateforme.
+        </p>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Livreur</th><th>Dette</th><th></th></tr></thead>
+                <tbody id="tbody-dettes"><tr><td colspan="3" class="text-muted">Chargement...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="modal-dette" class="modal-overlay hidden">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h2>Enregistrer un reglement</h2>
+            <button type="button" class="modal-close" id="dette-modal-fermer">&times;</button>
+        </div>
+        <div id="dette-modal-alert"></div>
+        <p id="dette-modal-info" class="text-muted"></p>
+        <div class="form-group">
+            <label for="dette-montant">Montant regle (FCFA)</label>
+            <input type="number" id="dette-montant" min="1" step="1">
+        </div>
+        <div class="form-group">
+            <label for="dette-note">Note (optionnel)</label>
+            <input type="text" id="dette-note" placeholder="Ex: remis en especes a l'agence">
+        </div>
+        <button type="button" class="btn btn-block" id="dette-modal-valider">Valider le reglement</button>
+    </div>
+</div>
+
 <div class="grid grid-2">
     <div class="card">
         <h2 style="margin-top:0;">Meilleurs livreurs <span class="text-muted" id="lbl-periode" style="font-size:0.8rem;"></span></h2>
@@ -199,6 +237,66 @@ async function chargerOperationnel() {
     `).join('') || '<tr><td colspan="3" class="text-muted">Aucune donnee.</td></tr>';
 }
 
+// --- Dettes de commission (courses payees en especes) -----------------------
+let dettes = [];
+const detteModal = document.getElementById('modal-dette');
+let livreurDetteActif = null;
+
+async function chargerDettes() {
+    try {
+        const res = await Api.get('/api/admin/livreurs_dettes.php');
+        dettes = res.data.livreurs || [];
+        document.getElementById('dette-total').textContent = dettes.length
+            ? 'Total du : ' + formatMontant(res.data.total_dette) : '';
+        const tbody = document.getElementById('tbody-dettes');
+        tbody.innerHTML = dettes.length ? dettes.map(l => `
+            <tr>
+                <td><strong>${escapeHtml(l.nom_complet)}</strong><br><span class="text-muted">${escapeHtml(l.telephone)}</span></td>
+                <td>${formatMontant(l.dette_commission)}</td>
+                <td><button type="button" class="btn btn-sm btn-ghost btn-regler-dette" data-id="${l.id}">Regler</button></td>
+            </tr>`).join('') : '<tr><td colspan="3" class="text-muted">Aucune dette en cours.</td></tr>';
+
+        tbody.querySelectorAll('.btn-regler-dette').forEach(btn => {
+            btn.addEventListener('click', () => ouvrirModalDette(Number(btn.dataset.id)));
+        });
+    } catch (err) {
+        document.getElementById('tbody-dettes').innerHTML = `<tr><td colspan="3" class="text-muted">Erreur de chargement.</td></tr>`;
+    }
+}
+
+function ouvrirModalDette(livreurId) {
+    livreurDetteActif = dettes.find(l => l.id === livreurId);
+    if (!livreurDetteActif) { return; }
+    document.getElementById('dette-modal-alert').innerHTML = '';
+    document.getElementById('dette-modal-info').textContent =
+        `${livreurDetteActif.nom_complet} — dette actuelle : ${formatMontant(livreurDetteActif.dette_commission)}`;
+    document.getElementById('dette-montant').value = livreurDetteActif.dette_commission;
+    document.getElementById('dette-montant').max = livreurDetteActif.dette_commission;
+    document.getElementById('dette-note').value = '';
+    detteModal.classList.remove('hidden');
+}
+function fermerModalDette() { detteModal.classList.add('hidden'); livreurDetteActif = null; }
+
+document.getElementById('dette-modal-fermer').addEventListener('click', fermerModalDette);
+detteModal.addEventListener('click', (e) => { if (e.target === detteModal) fermerModalDette(); });
+
+document.getElementById('dette-modal-valider').addEventListener('click', async () => {
+    if (!livreurDetteActif) { return; }
+    const alertZone = document.getElementById('dette-modal-alert');
+    const montant = document.getElementById('dette-montant').value;
+    try {
+        await Api.post('/api/admin/livreur_dette_regler.php', {
+            livreur_id: livreurDetteActif.id,
+            montant: montant,
+            note: document.getElementById('dette-note').value.trim(),
+        });
+        fermerModalDette();
+        chargerDettes();
+    } catch (err) {
+        alertZone.innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
+    }
+});
+
 document.querySelectorAll('.periode').forEach(btn => {
     btn.addEventListener('click', () => {
         periodeJours = Number(btn.dataset.j);
@@ -212,5 +310,6 @@ document.querySelectorAll('.periode').forEach(btn => {
 
 chargerAnalytics();
 chargerOperationnel();
+chargerDettes();
 </script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>
