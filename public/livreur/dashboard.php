@@ -23,6 +23,8 @@ require __DIR__ . '/../includes/header.php';
 
 <div id="alert-zone"></div>
 
+<div id="notif-statut" class="hidden mb-1"></div>
+
 <div id="offre-dispatch" class="card hidden mb-1" style="border:2px solid var(--couleur-primaire);"></div>
 
 <div id="course-active" class="card hidden mb-1"></div>
@@ -359,5 +361,54 @@ chargerCourseActive();
 chargerCommandes();
 chargerNotationClient();
 setInterval(() => { chargerOffre(); chargerCourseActive(); chargerCommandes(); chargerNotationClient(); }, 5000);
+
+// --- Etat des notifications push (alerte de course disponible) --------------
+// push.js (charge en fin de page) expose window.PushNotifications ; on attend
+// le chargement complet pour etre sur qu'il est disponible.
+function libelleNotifStatut(etat) {
+    switch (etat) {
+        case 'granted': return { icone: '🔔', texte: 'Notifications activees : vous serez alerte des qu\'une course est disponible, meme app fermee.', classe: 'alert-succes', bouton: null };
+        case 'denied': return { icone: '🔕', texte: 'Notifications bloquees : vous ne serez alerte que si l\'application est ouverte a l\'ecran.', classe: 'alert-erreur', bouton: 'aide' };
+        default: return { icone: '🔔', texte: 'Activez les notifications pour etre alerte des qu\'une course est disponible, meme app fermee.', classe: 'alert-info', bouton: 'activer' };
+    }
+}
+
+async function afficherStatutNotif() {
+    const zone = document.getElementById('notif-statut');
+    if (!window.PushNotifications) { zone.classList.add('hidden'); return; }
+
+    const etat = window.PushNotifications.statutPermission();
+    if (etat === 'non_supporte') { zone.classList.add('hidden'); return; }
+
+    // Fonctionnalite non activee cote serveur (pas de cles VAPID) : rien a proposer.
+    const publicKey = await window.PushNotifications.configServeur();
+    if (!publicKey) { zone.classList.add('hidden'); return; }
+
+    const info = libelleNotifStatut(etat);
+    let html = `<div class="alert ${info.classe}" style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;">
+        <span>${info.icone} ${info.texte}</span>`;
+    if (info.bouton === 'activer') {
+        html += `<button type="button" class="btn btn-sm" id="btn-activer-notifs">Activer les notifications</button>`;
+    } else if (info.bouton === 'aide') {
+        html += `<button type="button" class="btn btn-sm btn-ghost" id="btn-notifs-aide">Comment debloquer ?</button>`;
+    }
+    html += `</div><p id="notif-aide" class="text-muted hidden" style="font-size:0.85rem;margin:0.5rem 0 0;"></p>`;
+    zone.innerHTML = html;
+    zone.classList.remove('hidden');
+
+    document.getElementById('btn-activer-notifs')?.addEventListener('click', async (e) => {
+        e.target.disabled = true;
+        e.target.textContent = 'Activation...';
+        await window.PushNotifications.demanderActivation();
+        afficherStatutNotif();
+    });
+    document.getElementById('btn-notifs-aide')?.addEventListener('click', () => {
+        const aide = document.getElementById('notif-aide');
+        aide.classList.toggle('hidden');
+        aide.textContent = 'Notifications bloquees dans votre navigateur. Pour les reactiver : cliquez sur l\'icone 🔒 ou ⓘ a cote de l\'adresse du site, ouvrez "Autorisations" ou "Notifications", choisissez "Autoriser", puis rechargez cette page. Sur mobile : Parametres du navigateur > Parametres de site > cet appli > Notifications > Autoriser.';
+    });
+}
+
+window.addEventListener('load', afficherStatutNotif);
 </script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>
