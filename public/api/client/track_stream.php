@@ -46,7 +46,7 @@ $requete = $db->prepare(
     'SELECT c.id, c.reference, c.statut, c.statut_paiement, c.mode_paiement,
             c.adresse_depart, c.lat_depart, c.lng_depart,
             c.adresse_arrivee, c.lat_arrivee, c.lng_arrivee,
-            c.distance_km, c.montant_estime,
+            c.distance_km, c.montant_estime, c.code_livraison, c.livreur_id,
             tl.nom AS type_nom,
             u.nom AS livreur_nom, u.prenom AS livreur_prenom, u.telephone AS livreur_telephone,
             ld.latitude AS livreur_lat, ld.longitude AS livreur_lng

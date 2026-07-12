@@ -77,6 +77,7 @@ function initMap() {
 function renderDetails(c) {
     commandeId = c.id;
     document.getElementById('details').innerHTML = `
+        <p><strong>Reference :</strong> ${escapeHtml(c.reference)}</p>
         <p><strong>Type :</strong> ${escapeHtml(c.type_nom)}</p>
         <p><strong>Statut :</strong> ${badgeStatut(c.statut)}</p>
         <p><strong>De :</strong> ${escapeHtml(c.adresse_depart)}</p>
@@ -85,7 +86,7 @@ function renderDetails(c) {
         <p><strong>Montant :</strong> ${formatMontant(c.montant_estime)}</p>
         <p><strong>Paiement :</strong> ${escapeHtml(c.mode_paiement)} (${escapeHtml(c.statut_paiement)})</p>
         ${c.livreur_nom ? `<p><strong>Livreur :</strong> ${escapeHtml(c.livreur_prenom)} ${escapeHtml(c.livreur_nom)} - ${escapeHtml(c.livreur_telephone)}</p>` : '<p class="text-muted">En attente d\'un livreur...</p>'}
-        ${(c.code_livraison && !['livree', 'annulee'].includes(c.statut)) ? `<p style="font-size:1.1rem;"><strong>Code de livraison :</strong> <span style="letter-spacing:3px;font-weight:800;color:var(--couleur-primaire);">${escapeHtml(c.code_livraison)}</span><br><span class="text-muted">Communiquez ce code au livreur uniquement a la remise de votre colis.</span></p>` : ''}
+        ${(c.code_livraison && !['livree', 'annulee'].includes(c.statut)) ? `<p style="font-size:1.1rem;"><strong>Code de livraison :</strong> <span style="letter-spacing:3px;font-weight:800;color:var(--primaire);">${escapeHtml(c.code_livraison)}</span><br><span class="text-muted">Communiquez ce code au livreur uniquement a la remise de votre colis.</span></p>` : ''}
     `;
 
     const actions = document.getElementById('actions');
@@ -97,10 +98,12 @@ function renderDetails(c) {
         document.getElementById('modal-note').classList.remove('hidden');
     }
 
-    if (!markerDepart) {
-        markerDepart = L.marker([c.lat_depart, c.lng_depart], { icon: pinIcon(PIN_ROUGE) }).addTo(map).bindPopup('Depart');
-        markerArrivee = L.marker([c.lat_arrivee, c.lng_arrivee], { icon: pinIcon(PIN_VERT) }).addTo(map).bindPopup('Arrivee');
-        map.fitBounds([[c.lat_depart, c.lng_depart], [c.lat_arrivee, c.lng_arrivee]]);
+    if (map && !markerDepart) {
+        try {
+            markerDepart = L.marker([c.lat_depart, c.lng_depart], { icon: pinIcon(PIN_ROUGE) }).addTo(map).bindPopup('Depart');
+            markerArrivee = L.marker([c.lat_arrivee, c.lng_arrivee], { icon: pinIcon(PIN_VERT) }).addTo(map).bindPopup('Arrivee');
+            map.fitBounds([[c.lat_depart, c.lng_depart], [c.lat_arrivee, c.lng_arrivee]]);
+        } catch (e) { /* la carte est secondaire */ }
     }
 
     // Messagerie : disponible des qu'un livreur est attribue et commande active.
@@ -113,16 +116,18 @@ function renderDetails(c) {
         }
     }
 
-    if (c.livreur_lat && c.livreur_lng) {
-        if (!markerLivreur) {
-            markerLivreur = L.marker([c.livreur_lat, c.livreur_lng], {
-                title: 'Livreur',
-            }).addTo(map).bindPopup('Livreur');
-        } else {
-            markerLivreur.setLatLng([c.livreur_lat, c.livreur_lng]);
-        }
-        // Dessine la route au fur et a mesure que le livreur avance.
-        ajouterPointRoute(parseFloat(c.livreur_lat), parseFloat(c.livreur_lng));
+    if (map && c.livreur_lat && c.livreur_lng) {
+        try {
+            if (!markerLivreur) {
+                markerLivreur = L.marker([c.livreur_lat, c.livreur_lng], {
+                    title: 'Livreur',
+                }).addTo(map).bindPopup('Livreur');
+            } else {
+                markerLivreur.setLatLng([c.livreur_lat, c.livreur_lng]);
+            }
+            // Dessine la route au fur et a mesure que le livreur avance.
+            ajouterPointRoute(parseFloat(c.livreur_lat), parseFloat(c.livreur_lng));
+        } catch (e) { /* la carte est secondaire */ }
     }
 
     document.getElementById('btn-annuler')?.addEventListener('click', async () => {
@@ -195,8 +200,10 @@ document.getElementById('btn-envoyer-note').addEventListener('click', async () =
     }
 });
 
-initMap();
-charger();       // premier affichage immediat
+// La carte est secondaire : meme si Leaflet echoue, les details (reference,
+// statut, code de livraison...) doivent toujours s'afficher.
+try { initMap(); } catch (e) { /* carte indisponible, on continue */ }
+charger();       // premier affichage immediat (reference, code de livraison...)
 demarrerSSE();   // puis mises a jour poussees par le serveur (SSE)
 </script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>
