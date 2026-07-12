@@ -65,6 +65,60 @@ function osrm_match_trace(array $points): ?array
 }
 
 /**
+ * Itineraire routier entre deux points via le service /route d'OSRM.
+ *
+ * Retourne la geometrie de l'itineraire (depart -> arrivee) cale sur les rues
+ * sous forme de tableau de points [lat, lng], ou null en cas d'echec (le front
+ * se rabat alors sur une ligne droite entre les deux points).
+ *
+ * @param array{0: float, 1: float} $depart  [lat, lng]
+ * @param array{0: float, 1: float} $arrivee [lat, lng]
+ * @return array<int, array{0: float, 1: float}>|null
+ */
+function osrm_route(array $depart, array $arrivee): ?array
+{
+    $base = getenv('OSRM_BASE_URL') ?: 'https://router.project-osrm.org';
+    // OSRM attend lon,lat.
+    $coords = $depart[1] . ',' . $depart[0] . ';' . $arrivee[1] . ',' . $arrivee[0];
+    $url = rtrim($base, '/') . '/route/v1/driving/' . $coords . '?overview=full&geometries=geojson';
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 10,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_USERAGENT => 'CityHub225/1.0',
+        CURLOPT_HTTPHEADER => ['Accept: application/json'],
+        CURLOPT_FOLLOWLOCATION => true,
+    ]);
+    $proxy = getenv('HTTPS_PROXY') ?: getenv('https_proxy');
+    if ($proxy) {
+        curl_setopt($ch, CURLOPT_PROXY, $proxy);
+        if (is_file('/root/.ccr/ca-bundle.crt')) {
+            curl_setopt($ch, CURLOPT_CAINFO, '/root/.ccr/ca-bundle.crt');
+        }
+    }
+    $reponse = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($reponse === false || $code !== 200) {
+        return null;
+    }
+    $data = json_decode((string) $reponse, true);
+    if (!is_array($data) || ($data['code'] ?? '') !== 'Ok' || empty($data['routes'][0]['geometry']['coordinates'])) {
+        return null;
+    }
+
+    $trace = [];
+    foreach ($data['routes'][0]['geometry']['coordinates'] as $c) {
+        // GeoJSON : [lon, lat] -> [lat, lng].
+        $trace[] = [(float) $c[1], (float) $c[0]];
+    }
+    return count($trace) >= 2 ? $trace : null;
+}
+
+/**
  * Reduit une liste de points a $max elements en conservant premier/dernier.
  */
 function osrm_echantillonner(array $points, int $max): array

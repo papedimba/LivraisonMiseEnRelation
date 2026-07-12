@@ -49,6 +49,29 @@ let commandeId = null;
 let chatDemarre = false;
 let routeLine = null;
 let routePoints = []; // trace reellement parcourue par le livreur
+let itineraireLine = null; // itineraire prevu depart -> arrivee (des la confirmation)
+
+// Trace l'itineraire prevu du point de depart au point d'arrivee, cale sur les
+// rues (OSRM). Appele une seule fois, des que les coordonnees sont connues.
+// Repli hors ligne : une ligne droite reliant les deux points.
+async function tracerItineraire(c) {
+    if (!map || itineraireLine) { return; }
+    const depart = [parseFloat(c.lat_depart), parseFloat(c.lng_depart)];
+    const arrivee = [parseFloat(c.lat_arrivee), parseFloat(c.lng_arrivee)];
+    if (!isFinite(depart[0]) || !isFinite(arrivee[0])) { return; }
+    let points = [depart, arrivee]; // repli : ligne droite
+    try {
+        const res = await Api.get('/api/public/route_plan.php'
+            + '?lat_depart=' + depart[0] + '&lng_depart=' + depart[1]
+            + '&lat_arrivee=' + arrivee[0] + '&lng_arrivee=' + arrivee[1]);
+        if (res.data && Array.isArray(res.data.points) && res.data.points.length >= 2) {
+            points = res.data.points;
+        }
+    } catch (e) { /* repli sur la ligne droite */ }
+    try {
+        itineraireLine = L.polyline(points, { color: '#2563eb', weight: 4, opacity: 0.6, dashArray: '8,6' }).addTo(map);
+    } catch (e) { /* la carte est secondaire */ }
+}
 
 function dessinerRoute() {
     if (routePoints.length < 2) { return; }
@@ -104,6 +127,8 @@ function renderDetails(c) {
             markerArrivee = L.marker([c.lat_arrivee, c.lng_arrivee], { icon: pinIcon(PIN_VERT) }).addTo(map).bindPopup('Arrivee');
             map.fitBounds([[c.lat_depart, c.lng_depart], [c.lat_arrivee, c.lng_arrivee]]);
         } catch (e) { /* la carte est secondaire */ }
+        // Des la confirmation : trace l'itineraire prevu depart -> arrivee.
+        tracerItineraire(c);
     }
 
     // Messagerie : optionnelle. Ne doit jamais empecher l'affichage des details

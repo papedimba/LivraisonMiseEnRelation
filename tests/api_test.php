@@ -390,6 +390,13 @@ function tests_api(string $base): void
     t_eq(200, $r['code'], 'geocodage inverse repond (libelle vide tolere hors ligne)');
     t_ok(array_key_exists('adresse', $r['body']['data'] ?? []), 'reponse de geocodage inverse contient un libelle');
 
+    // Itineraire prevu depart -> arrivee (trace des la confirmation).
+    $r = $client->get('/api/public/route_plan.php?lat_depart=7.69&lng_depart=-5.03');
+    t_eq(422, $r['code'], 'itineraire sans coordonnees d\'arrivee rejete');
+    $r = $client->get('/api/public/route_plan.php?lat_depart=7.69&lng_depart=-5.03&lat_arrivee=7.70&lng_arrivee=-5.02');
+    t_eq(200, $r['code'], 'itineraire repond (liste vide toleree hors ligne)');
+    t_ok(is_array($r['body']['data']['points'] ?? null), 'l\'itineraire renvoie une liste de points');
+
     // -- Securite --------------------------------------------------------------
     t_section('Controle d\'acces');
     $anon = new TestHttp($base);
