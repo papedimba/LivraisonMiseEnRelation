@@ -153,10 +153,27 @@ function tests_api(string $base): void
     ]);
     t_eq(422, $r['code'], 'retrait refuse : solde retirable insuffisant a cause de la dette');
 
-    // L'admin enregistre un reglement partiel puis total de la dette.
-    $moitie = round($detteApresLivraisonEspeces / 2, 2);
+    // Reglement en libre-service (Mobile Money) : en environnement de test,
+    // aucune cle API n'est configuree -> mode simulation, applique immediatement.
+    $tiers = round($detteApresLivraisonEspeces / 3, 2);
+    $r = $livreur->post('/api/livreur/dette_payer.php', [
+        'montant' => $tiers, 'methode' => 'orange_money', 'numero_paiement' => '0700000000',
+    ]);
+    t_eq(200, $r['code'], 'paiement Mobile Money de la dette initie');
+    t_eq('reussi', $r['body']['data']['statut'] ?? null, 'paiement simule confirme immediatement (pas de cle API en test)');
+    $detteApresLibreService = (float) ($r['body']['data']['dette_commission'] ?? -1);
+    t_ok($detteApresLibreService > 0 && $detteApresLibreService < $detteApresLivraisonEspeces,
+        'la dette diminue apres un reglement en libre-service');
+
+    $r = $livreur->post('/api/livreur/dette_payer.php', [
+        'montant' => $detteApresLivraisonEspeces + 1000, 'methode' => 'wave', 'numero_paiement' => '0700000000',
+    ]);
+    t_eq(422, $r['code'], 'paiement de dette superieur a la dette restante rejete');
+
+    // L'admin enregistre un reglement partiel puis total du reste de la dette.
+    $moitie = round($detteApresLibreService / 2, 2);
     $r = $admin->post('/api/admin/livreur_dette_regler.php', ['livreur_id' => $livreurId, 'montant' => $moitie]);
-    t_eq(200, $r['code'], 'reglement partiel de la dette enregistre');
+    t_eq(200, $r['code'], 'reglement partiel (agence) de la dette enregistre');
 
     $r = $admin->post('/api/admin/livreur_dette_regler.php', [
         'livreur_id' => $livreurId, 'montant' => $detteApresLivraisonEspeces + 1000,
@@ -165,13 +182,19 @@ function tests_api(string $base): void
 
     $r = $livreur->get('/api/livreur/earnings.php');
     $detteRestante = (float) ($r['body']['data']['dette_commission'] ?? -1);
-    t_ok($detteRestante > 0 && $detteRestante < $detteApresLivraisonEspeces, 'la dette diminue apres un reglement partiel');
+    t_ok($detteRestante > 0 && $detteRestante < $detteApresLibreService, 'la dette diminue apres le reglement partiel agence');
 
     $r = $admin->post('/api/admin/livreur_dette_regler.php', ['livreur_id' => $livreurId, 'montant' => $detteRestante]);
     t_eq(200, $r['code'], 'reglement du solde de la dette');
 
     $r = $livreur->get('/api/livreur/earnings.php');
     t_eq(0.0, (float) ($r['body']['data']['dette_commission'] ?? -1), 'la dette de commission est soldee');
+
+    // Plus aucune dette : un nouveau paiement de dette est rejete (rien a regler).
+    $r = $livreur->post('/api/livreur/dette_payer.php', [
+        'montant' => 100, 'methode' => 'wave', 'numero_paiement' => '0700000000',
+    ]);
+    t_eq(422, $r['code'], 'paiement de dette rejete quand la dette est deja nulle');
 
     // -- Evaluation ------------------------------------------------------------
     t_section('Evaluation');

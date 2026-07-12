@@ -131,12 +131,36 @@ CREATE TABLE IF NOT EXISTS reglements_dette (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     livreur_id INT UNSIGNED NOT NULL,
     montant DECIMAL(12,2) NOT NULL,
-    admin_id INT UNSIGNED NOT NULL,
+    admin_id INT UNSIGNED DEFAULT NULL,
+    methode ENUM('agence','orange_money','mtn_money','moov_money','wave') NOT NULL DEFAULT 'agence',
     note VARCHAR(255) DEFAULT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_regdette_livreur FOREIGN KEY (livreur_id) REFERENCES users(id),
     CONSTRAINT fk_regdette_admin FOREIGN KEY (admin_id) REFERENCES users(id),
     KEY idx_regdette_livreur (livreur_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Si la table existait deja (schema anterieur au reglement en libre-service) :
+-- rendre admin_id nullable et ajouter la colonne methode.
+ALTER TABLE reglements_dette MODIFY admin_id INT UNSIGNED DEFAULT NULL;
+SET @x := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='reglements_dette' AND column_name='methode');
+SET @s := IF(@x=0, "ALTER TABLE reglements_dette ADD COLUMN methode ENUM('agence','orange_money','mtn_money','moov_money','wave') NOT NULL DEFAULT 'agence' AFTER admin_id", 'DO 0');
+PREPARE st FROM @s; EXECUTE st; DEALLOCATE PREPARE st;
+
+CREATE TABLE IF NOT EXISTS paiements_dette (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    livreur_id INT UNSIGNED NOT NULL,
+    methode ENUM('orange_money','mtn_money','moov_money','wave') NOT NULL,
+    reference VARCHAR(100) NOT NULL,
+    montant DECIMAL(12,2) NOT NULL,
+    statut ENUM('en_attente','reussi','echec') NOT NULL DEFAULT 'en_attente',
+    payload_json TEXT,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_paiementdette_livreur FOREIGN KEY (livreur_id) REFERENCES users(id),
+    UNIQUE KEY uq_paiementdette_reference (reference),
+    KEY idx_paiementdette_livreur (livreur_id),
+    KEY idx_paiementdette_statut (statut)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --- Cle etrangere commandes.moyen_transport_id (si absente) -----------------

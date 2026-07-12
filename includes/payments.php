@@ -43,6 +43,87 @@ function confirmer_paiement(PDO $db, string $referenceTransaction, string $statu
     return confirmer_paiement_par_id($db, (int) $row['id'], $statut, $payload);
 }
 
+/**
+ * Confirme un paiement Mobile Money initie par un livreur pour regler sa dette
+ * de commission (courses payees en especes). Retourne false si aucun paiement
+ * de dette ne correspond a cette reference (permet aux webhooks d'essayer ce
+ * chemin en repli lorsque la reference ne correspond a aucune commande).
+ *
+ * @param string $statut 'reussi' | 'echec'
+ */
+function confirmer_reglement_dette(PDO $db, string $reference, string $statut, array $payload = []): bool
+{
+    $stmt = $db->prepare('SELECT id, livreur_id, methode, montant, statut FROM paiements_dette WHERE reference = :ref LIMIT 1');
+    $stmt->execute(['ref' => $reference]);
+    $paiement = $stmt->fetch();
+    if (!$paiement) {
+        return false;
+    }
+    // Idempotence : un paiement deja au statut final ne doit pas etre rejoue
+    // (le montant de la dette a deja ete applique une fois pour un succes).
+    if (in_array($paiement['statut'], ['reussi', 'echec'], true)) {
+        return true;
+    }
+
+    $db->beginTransaction();
+    try {
+        $db->prepare('UPDATE paiements_dette SET statut = :statut, payload_json = :payload WHERE id = :id')
+            ->execute([
+                'statut' => $statut,
+                'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE),
+                'id' => $paiement['id'],
+            ]);
+
+        if ($statut === 'reussi') {
+            $stmtL = $db->prepare('SELECT dette_commission FROM livreur_details WHERE user_id = :id FOR UPDATE');
+            $stmtL->execute(['id' => $paiement['livreur_id']]);
+            $livreur = $stmtL->fetch();
+            $detteActuelle = (float) ($livreur['dette_commission'] ?? 0);
+            // Ne jamais appliquer plus que la dette restante (garde-fou en cas
+            // de reglement concurrent, ex. par l'admin, entre-temps).
+            $applique = min($detteActuelle, (float) $paiement['montant']);
+
+            if ($applique > 0) {
+                $db->prepare('UPDATE livreur_details SET dette_commission = dette_commission - :montant WHERE user_id = :id')
+                    ->execute(['montant' => $applique, 'id' => $paiement['livreur_id']]);
+
+                $db->prepare(
+                    'INSERT INTO reglements_dette (livreur_id, montant, admin_id, methode, note) VALUES (:livreur_id, :montant, NULL, :methode, :note)'
+                )->execute([
+                    'livreur_id' => $paiement['livreur_id'],
+                    'montant' => $applique,
+                    'methode' => $paiement['methode'],
+                    'note' => 'Reglement en libre-service via Mobile Money',
+                ]);
+            }
+
+            creer_notification(
+                $db,
+                (int) $paiement['livreur_id'],
+                'Dette de commission reglee',
+                "Votre paiement de {$paiement['montant']} FCFA a ete confirme et applique a votre dette de commission.",
+                'paiement'
+            );
+        } elseif ($statut === 'echec') {
+            creer_notification(
+                $db,
+                (int) $paiement['livreur_id'],
+                'Paiement echoue',
+                'Le reglement de votre dette de commission a echoue. Vous pouvez reessayer.',
+                'paiement'
+            );
+        }
+
+        $db->commit();
+    } catch (Throwable $e) {
+        $db->rollBack();
+        error_log('confirmer_reglement_dette error: ' . $e->getMessage());
+        return false;
+    }
+
+    return true;
+}
+
 function confirmer_paiement_par_id(PDO $db, int $paiementId, string $statut, array $payload = []): bool
 {
     $stmt = $db->prepare('SELECT id, commande_id, statut FROM paiements WHERE id = :id');

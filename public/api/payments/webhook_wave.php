@@ -49,7 +49,10 @@ $statut = match ($type) {
 };
 
 if ($statut !== null && $referenceCommande !== '') {
-    confirmer_paiement_par_commande(Database::getConnection(), (string) $referenceCommande, $statut, $event);
+    $db = Database::getConnection();
+    if (!confirmer_paiement_par_commande($db, (string) $referenceCommande, $statut, $event)) {
+        confirmer_reglement_dette($db, (string) $referenceCommande, $statut, $event);
+    }
 }
 
 http_response_code(200);

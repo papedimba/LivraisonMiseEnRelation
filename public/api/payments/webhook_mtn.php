@@ -25,7 +25,10 @@ $statut = match ($statutMtn) {
 };
 
 if ($statut !== null && $referenceCommande !== '') {
-    confirmer_paiement_par_commande(Database::getConnection(), $referenceCommande, $statut, $notif);
+    $db = Database::getConnection();
+    if (!confirmer_paiement_par_commande($db, $referenceCommande, $statut, $notif)) {
+        confirmer_reglement_dette($db, $referenceCommande, $statut, $notif);
+    }
 }
 
 http_response_code(200);
