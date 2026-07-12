@@ -106,14 +106,17 @@ function renderDetails(c) {
         } catch (e) { /* la carte est secondaire */ }
     }
 
-    // Messagerie : disponible des qu'un livreur est attribue et commande active.
+    // Messagerie : optionnelle. Ne doit jamais empecher l'affichage des details
+    // si le module de chat n'a pas pu se charger.
     const chatCard = document.getElementById('chat-card');
-    if (c.livreur_id && c.statut !== 'annulee') {
-        chatCard.classList.remove('hidden');
-        if (!chatDemarre) {
-            Chat.init(chatCard, c.id);
-            chatDemarre = true;
-        }
+    if (typeof Chat !== 'undefined' && c.livreur_id && c.statut !== 'annulee') {
+        try {
+            chatCard.classList.remove('hidden');
+            if (!chatDemarre) {
+                Chat.init(chatCard, c.id);
+                chatDemarre = true;
+            }
+        } catch (e) { /* le chat est secondaire */ }
     }
 
     if (map && c.livreur_lat && c.livreur_lng) {
