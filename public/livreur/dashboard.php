@@ -95,14 +95,24 @@ async function chargerDisponibilite() {
 }
 
 async function chargerCourseActive() {
-    const res = await Api.get('/api/livreur/orders_history.php');
-    const active = res.data.commandes.find(c => ['acceptee', 'recuperee', 'en_cours'].includes(c.statut));
     const zone = document.getElementById('course-active');
     const chatCard = document.getElementById('chat-course');
+
+    let res;
+    try {
+        res = await Api.get('/api/livreur/orders_history.php');
+    } catch (err) {
+        // Ne jamais faire "disparaitre" la course en silence : on informe.
+        zone.classList.remove('hidden');
+        zone.innerHTML = `<div class="alert alert-erreur">Impossible de charger votre course en cours : ${escapeHtml(err.message)}</div>`;
+        return;
+    }
+
+    const active = res.data.commandes.find(c => ['acceptee', 'recuperee', 'en_cours'].includes(c.statut));
     if (!active) {
         zone.classList.add('hidden');
         chatCard.classList.add('hidden');
-        Chat.stop();
+        if (typeof Chat !== 'undefined') { Chat.stop(); }
         chatCourseId = null;
         courseActiveId = null;
         derniereSignatureCourse = null;
@@ -110,11 +120,14 @@ async function chargerCourseActive() {
     }
     courseActiveId = active.id;
 
-    // Messagerie avec le client : demarree une seule fois par course.
-    if (chatCourseId !== active.id) {
-        chatCard.classList.remove('hidden');
-        Chat.init(chatCard, active.id);
-        chatCourseId = active.id;
+    // Messagerie avec le client : optionnelle, ne doit jamais empecher
+    // l'affichage de la course si le module de chat echoue.
+    if (typeof Chat !== 'undefined' && chatCourseId !== active.id) {
+        try {
+            chatCard.classList.remove('hidden');
+            Chat.init(chatCard, active.id);
+            chatCourseId = active.id;
+        } catch (e) { /* le chat est secondaire */ }
     }
 
     // On ne reconstruit la carte que si l'etat change reellement, sinon le
