@@ -460,9 +460,17 @@ final class GeniusPayDriver implements PaymentDriver
 
 final class PaymentGateway
 {
-    public static function driver(string $methode): PaymentDriver
+    // $db optionnel : si fourni, les identifiants configures par
+    // l'administrateur (table `parametres`, voir includes/mobile_money_settings.php)
+    // surchargent les valeurs par defaut de .env. Sans $db (contexte sans base
+    // de donnees), seul .env est utilise.
+    public static function driver(string $methode, ?PDO $db = null): PaymentDriver
     {
         $config = MOBILE_MONEY_CONFIG;
+        if ($db !== null) {
+            require_once __DIR__ . '/mobile_money_settings.php';
+            $config = mobile_money_config_effective($db);
+        }
 
         if ($methode === 'especes') {
             return new EspecesDriver();

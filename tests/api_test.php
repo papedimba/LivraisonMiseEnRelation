@@ -345,6 +345,65 @@ function tests_api(string $base): void
     $r = $admin->get('/api/admin/settings.php');
     t_eq('18', $r['body']['data']['parametres']['commission_taux_defaut'] ?? null, 'parametre commission bien enregistre');
 
+    // -- Configuration Mobile Money (admin) -------------------------------------
+    t_section('Configuration Mobile Money (admin)');
+    $r = $client->get('/api/admin/mobile_money_config.php');
+    t_eq(403, $r['code'], 'configuration Mobile Money interdite a un client (403)');
+
+    $r = $admin->get('/api/admin/mobile_money_config.php');
+    t_eq(200, $r['code'], 'l\'admin consulte la configuration Mobile Money');
+    t_ok(isset($r['body']['data']['operateurs']['orange_money'], $r['body']['data']['operateurs']['geniuspay']),
+        'les operateurs geres sont listes (orange_money, geniuspay...)');
+    t_eq(false, $r['body']['data']['operateurs']['wave']['configure'] ?? null,
+        'wave non configure par defaut (aucun identifiant en base ni en .env de test)');
+
+    // Operateur inconnu rejete (whitelist stricte).
+    $r = $admin->post('/api/admin/mobile_money_config.php', [
+        'operateur' => 'operateur_inexistant', 'champs' => ['api_key' => 'x'],
+    ]);
+    t_eq(422, $r['code'], 'operateur Mobile Money inconnu rejete');
+
+    // Enregistrement : seuls les champs de la whitelist de l'operateur sont pris
+    // en compte, et le secret n'est jamais renvoye en clair.
+    $r = $admin->post('/api/admin/mobile_money_config.php', [
+        'operateur' => 'wave',
+        'champs' => ['api_key' => 'cle-test-secrete-1234', 'webhook_secret' => 'secret-webhook-5678', 'champ_inconnu' => 'ignore-moi'],
+    ]);
+    t_eq(200, $r['code'], 'enregistrement des identifiants Wave');
+    $etatWave = $r['body']['data']['etat'] ?? [];
+    t_eq(true, $etatWave['configure'] ?? null, 'wave devient configure apres enregistrement des identifiants');
+    t_eq('••••1234', $etatWave['champs']['api_key']['apercu'] ?? null, 'la cle API est masquee (apercu des 4 derniers caracteres uniquement)');
+    t_ok(!isset($etatWave['champs']['champ_inconnu']), 'un champ hors whitelist est ignore silencieusement');
+
+    // Un champ laisse vide conserve la valeur precedente (pas d'ecrasement).
+    $r = $admin->post('/api/admin/mobile_money_config.php', [
+        'operateur' => 'wave', 'champs' => ['api_key' => '', 'webhook_secret' => 'nouveau-secret-9999'],
+    ]);
+    t_eq(200, $r['code'], 'reenregistrement partiel (champ vide ignore)');
+    $etatWave2 = $r['body']['data']['etat'] ?? [];
+    t_eq('••••1234', $etatWave2['champs']['api_key']['apercu'] ?? null, 'la cle API precedente est conservee (champ vide = pas d\'ecrasement)');
+    t_eq('••••9999', $etatWave2['champs']['webhook_secret']['apercu'] ?? null, 'le webhook secret est mis a jour');
+
+    // GeniusPay : renseigner des identifiants ne suffit pas a activer de vrais
+    // paiements (integration en attente de la doc officielle, cf. PaymentGateway).
+    $r = $admin->post('/api/admin/mobile_money_config.php', [
+        'operateur' => 'geniuspay', 'champs' => ['base_url' => 'https://exemple.test', 'api_key' => 'cle-geniuspay-test'],
+    ]);
+    t_eq(200, $r['code'], 'enregistrement des identifiants GeniusPay');
+    $r = $client->post('/api/auth/login.php', ['email' => $emailClient, 'password' => 'MotDePasse1']);
+    $r = $client->post('/api/client/orders_create.php', [
+        'type_livraison_id' => 1, 'lat_depart' => 7.69, 'lng_depart' => -5.03,
+        'lat_arrivee' => 7.70, 'lng_arrivee' => -5.04, 'mode_paiement' => 'wave',
+    ]);
+    t_eq(201, $r['code'], 'commande payee via Wave malgre GeniusPay configure (agregateur non finalise)');
+
+    // Reinitialisation : retour aux valeurs de .env (plus aucune surcharge admin).
+    $r = $admin->post('/api/admin/mobile_money_config.php', ['operateur' => 'wave', 'reinitialiser' => true]);
+    t_eq(200, $r['code'], 'reinitialisation des identifiants Wave');
+    $etatWaveReset = $r['body']['data']['etat'] ?? [];
+    t_eq(false, $etatWaveReset['configure'] ?? null, 'wave redevient non configure apres reinitialisation');
+    t_eq(false, $etatWaveReset['champs']['api_key']['renseigne'] ?? null, 'la cle API n\'est plus renseignee apres reinitialisation');
+
     // -- Moyens de transport (multiplicateur tarifaire) ------------------------
     t_section('Moyens de transport');
     $r = $client->get('/api/public/transport_modes.php');

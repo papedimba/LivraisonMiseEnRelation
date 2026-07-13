@@ -122,6 +122,12 @@ require __DIR__ . '/../includes/header.php';
 </div>
 
 <div class="card mt-1">
+    <h2>Paiement Mobile Money</h2>
+    <p class="text-muted">Identifiants marchand par operateur. Un champ laisse vide lors de l'enregistrement conserve sa valeur actuelle. Tant qu'un operateur n'est pas configure, ses paiements sont simules (confirmes instantanement, sans appel reseau reel).</p>
+    <div id="mm-operateurs"></div>
+</div>
+
+<div class="card mt-1">
     <h2>Types de colis &amp; tarifs</h2>
     <p class="text-muted">Tarif de livraison = tarif de base + (tarif/km &times; distance) + supplement express eventuel. Modifiez une valeur pour l'enregistrer aussitot.</p>
     <div class="table-wrap">
@@ -361,5 +367,128 @@ async function creerTransport() {
 chargerParametres();
 chargerTypes();
 chargerTransport();
+chargerMobileMoney();
+
+// --- Paiement Mobile Money (identifiants marchand par operateur) ------------
+const MM_OPERATEURS = [
+    { code: 'orange_money', label: 'Orange Money', champs: [
+        { nom: 'base_url', label: 'URL de base', type: 'text' },
+        { nom: 'client_id', label: 'Client ID', type: 'secret' },
+        { nom: 'client_secret', label: 'Client Secret', type: 'secret' },
+        { nom: 'merchant_key', label: 'Merchant Key', type: 'secret' },
+    ] },
+    { code: 'mtn_money', label: 'MTN Mobile Money', champs: [
+        { nom: 'base_url', label: 'URL de base', type: 'text' },
+        { nom: 'environment', label: 'Environnement', type: 'text' },
+        { nom: 'subscription_key', label: 'Subscription Key', type: 'secret' },
+        { nom: 'api_user', label: 'API User', type: 'secret' },
+        { nom: 'api_key', label: 'API Key', type: 'secret' },
+    ] },
+    { code: 'moov_money', label: 'Moov Money', champs: [
+        { nom: 'base_url', label: 'URL de base', type: 'text' },
+        { nom: 'client_id', label: 'Client ID', type: 'secret' },
+        { nom: 'client_secret', label: 'Client Secret', type: 'secret' },
+        { nom: 'merchant_id', label: 'Merchant ID', type: 'secret' },
+    ] },
+    { code: 'wave', label: 'Wave', champs: [
+        { nom: 'base_url', label: 'URL de base', type: 'text' },
+        { nom: 'api_key', label: 'API Key', type: 'secret' },
+        { nom: 'webhook_secret', label: 'Webhook Secret', type: 'secret' },
+    ] },
+    { code: 'geniuspay', label: 'GeniusPay (agregateur)', champs: [
+        { nom: 'base_url', label: 'URL de base', type: 'text' },
+        { nom: 'api_key', label: 'API Key', type: 'secret' },
+        { nom: 'merchant_id', label: 'Merchant ID', type: 'secret' },
+        { nom: 'webhook_secret', label: 'Webhook Secret', type: 'secret' },
+    ], note: 'Si configure, remplace l\'appel direct a Orange/MTN/Moov/Wave (agregateur unique). Integration en attente de la documentation officielle GeniusPay : tant que le code n\'est pas finalise cote serveur, les paiements restent simules meme si des identifiants sont renseignes ici.' },
+];
+
+function mmBadgeConfig(configure) {
+    return configure
+        ? '<span class="tag tag-succes">Configure</span>'
+        : '<span class="tag tag-attente">Non configure — simulation active</span>';
+}
+
+function rendreMobileMoney(etatParOperateur) {
+    const zone = document.getElementById('mm-operateurs');
+    zone.innerHTML = MM_OPERATEURS.map(op => {
+        const etat = etatParOperateur[op.code] || { champs: {}, configure: false };
+        const champsHtml = op.champs.map(c => {
+            const infoChamp = etat.champs[c.nom] || {};
+            if (c.type === 'secret') {
+                const placeholder = infoChamp.renseigne
+                    ? `Deja renseigne (${infoChamp.apercu}) — laisser vide pour conserver`
+                    : 'Non renseigne';
+                return `<div class="form-group">
+                    <label for="mm-${op.code}-${c.nom}">${c.label}</label>
+                    <input type="password" id="mm-${op.code}-${c.nom}" data-champ="${c.nom}" placeholder="${escapeHtml(placeholder)}" autocomplete="off">
+                </div>`;
+            }
+            return `<div class="form-group">
+                <label for="mm-${op.code}-${c.nom}">${c.label}</label>
+                <input type="text" id="mm-${op.code}-${c.nom}" data-champ="${c.nom}" value="${escapeHtml(infoChamp.valeur || '')}">
+            </div>`;
+        }).join('');
+
+        return `<div class="card mb-1" style="border:1px solid var(--bordure);">
+            <div class="flex-between">
+                <h3 style="margin:0;">${op.label}</h3>
+                ${mmBadgeConfig(etat.configure)}
+            </div>
+            ${op.note ? `<p class="text-muted" style="font-size:0.85rem;">${escapeHtml(op.note)}</p>` : ''}
+            <div class="grid grid-2">${champsHtml}</div>
+            <div id="mm-alert-${op.code}"></div>
+            <div class="flex">
+                <button type="button" class="btn btn-sm" data-save="${op.code}">Enregistrer</button>
+                <button type="button" class="btn btn-sm btn-ghost" data-reset="${op.code}">Reinitialiser (retour a .env)</button>
+            </div>
+        </div>`;
+    }).join('');
+
+    zone.querySelectorAll('button[data-save]').forEach(btn => {
+        btn.addEventListener('click', () => enregistrerMobileMoney(btn.dataset.save));
+    });
+    zone.querySelectorAll('button[data-reset]').forEach(btn => {
+        btn.addEventListener('click', () => reinitialiserMobileMoney(btn.dataset.reset));
+    });
+}
+
+async function chargerMobileMoney() {
+    try {
+        const res = await Api.get('/api/admin/mobile_money_config.php');
+        rendreMobileMoney(res.data.operateurs);
+    } catch (err) {
+        document.getElementById('mm-operateurs').innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
+    }
+}
+
+async function enregistrerMobileMoney(code) {
+    const op = MM_OPERATEURS.find(o => o.code === code);
+    const alertZone = document.getElementById(`mm-alert-${code}`);
+    const champs = {};
+    op.champs.forEach(c => {
+        champs[c.nom] = document.getElementById(`mm-${code}-${c.nom}`).value.trim();
+    });
+    try {
+        await Api.post('/api/admin/mobile_money_config.php', { operateur: code, champs: champs });
+        alertZone.innerHTML = '<div class="alert alert-succes">Identifiants enregistres.</div>';
+        chargerMobileMoney();
+    } catch (err) {
+        alertZone.innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
+    }
+}
+
+async function reinitialiserMobileMoney(code) {
+    const op = MM_OPERATEURS.find(o => o.code === code);
+    if (!confirm(`Reinitialiser les identifiants ${op.label} ? Les valeurs de .env seront reutilisees.`)) { return; }
+    const alertZone = document.getElementById(`mm-alert-${code}`);
+    try {
+        await Api.post('/api/admin/mobile_money_config.php', { operateur: code, reinitialiser: true });
+        alertZone.innerHTML = '<div class="alert alert-succes">Identifiants reinitialises.</div>';
+        chargerMobileMoney();
+    } catch (err) {
+        alertZone.innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
+    }
+}
 </script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>

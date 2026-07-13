@@ -71,7 +71,7 @@ $db->prepare(
     'statut' => 'en_attente',
 ]);
 
-$driver = PaymentGateway::driver($methode);
+$driver = PaymentGateway::driver($methode, $db);
 $resultat = $driver->initierPaiement($numero, $montant, $reference);
 
 if (in_array($resultat['statut'], ['reussi', 'echec'], true)) {

@@ -191,7 +191,7 @@ try {
     }
 
     $numeroPaiement = clean_str(input($body, 'numero_paiement', ''));
-    $driver = PaymentGateway::driver($modePaiement);
+    $driver = PaymentGateway::driver($modePaiement, $db);
     $resultatPaiement = $driver->initierPaiement($numeroPaiement, $montantTotal, $reference);
 
     $stmtPaiement = $db->prepare(
