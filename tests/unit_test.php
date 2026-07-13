@@ -8,6 +8,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/webpush_util.php';
 require_once __DIR__ . '/../includes/pricing.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/PaymentGateway.php';
 
 function tests_unitaires(): void
 {
@@ -41,6 +43,23 @@ function tests_unitaires(): void
     t_ok(!is_valid_email('pas-un-email'), 'email invalide rejete');
     t_ok(is_valid_phone('0700000000'), 'telephone valide');
     t_ok(!is_valid_phone('abc'), 'telephone invalide rejete');
+
+    t_section('Passerelle de paiement : agregateur GeniusPay (integration en attente)');
+    // Sans identifiants (.env par defaut) : GeniusPay n'est pas selectionne, le
+    // driver direct de l'operateur reste utilise (comportement inchange).
+    t_ok(!GeniusPayDriver::estDisponible(['base_url' => '', 'api_key' => '']), 'GeniusPay indisponible sans identifiants');
+    t_ok(PaymentGateway::driver('orange_money') instanceof OrangeMoneyDriver, 'sans GeniusPay configure, orange_money utilise son driver direct');
+    t_ok(PaymentGateway::driver('especes') instanceof EspecesDriver, 'le paiement especes reste inchange');
+
+    // Meme avec des identifiants renseignes, tant que l'integration n'est pas
+    // finalisee (documentation officielle non recue), AUCUN appel reseau ne
+    // doit etre tente : le driver doit retomber sur la simulation, jamais lever
+    // d'exception ni deviner un contrat d'API reel.
+    t_ok(GeniusPayDriver::estDisponible(['base_url' => 'https://exemple.test', 'api_key' => 'cle-test']), 'GeniusPay se declare disponible si des identifiants sont fournis');
+    $driverGeniusPay = new GeniusPayDriver(['base_url' => 'https://exemple.test', 'api_key' => 'cle-test'], 'orange_money');
+    $resultatGeniusPay = $driverGeniusPay->initierPaiement('0700000000', 1000.0, 'CMD-TEST-GENIUSPAY');
+    t_eq('reussi', $resultatGeniusPay['statut'], 'GeniusPay retombe sur la simulation tant que l\'integration n\'est pas finalisee (pas d\'appel reseau devine)');
+    t_eq('simulation', $resultatGeniusPay['payload']['mode'] ?? null, 'le paiement simule est explicitement marque comme tel');
 
     t_section('Web Push : signature VAPID ES256 (round-trip)');
     $res = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_EC, 'curve_name' => 'prime256v1']);

@@ -373,18 +373,113 @@ final class EspecesDriver implements PaymentDriver
     }
 }
 
+/**
+ * GeniusPay - agregateur Mobile Money (Orange/MTN/Moov/Wave derriere une seule
+ * API). Quand il est actif (identifiants renseignes dans .env), il remplace
+ * l'appel direct a chaque operateur : PaymentGateway::driver() route alors
+ * orange_money/mtn_money/moov_money/wave vers CE driver, avec le code
+ * operateur transmis en constructeur.
+ *
+ * ============================================================================
+ * INTEGRATION EN ATTENTE DE LA DOCUMENTATION OFFICIELLE GENIUSPAY.
+ * ============================================================================
+ * Sans elle, on ignore : l'URL de base et les endpoints reels, le mode
+ * d'authentification (cle API simple ? signature de requete ? OAuth ?), le
+ * format attendu pour initier un paiement (noms de champs, mapping de nos
+ * codes operateur vers ceux de GeniusPay), le format de la reponse
+ * (statut/reference/redirect_url), et le format + la signature du webhook de
+ * confirmation.
+ *
+ * Tant que self::INTEGRATION_FINALISEE reste a false, initierPaiement() ne
+ * fait JAMAIS d'appel reseau reel (meme si des identifiants sont renseignes
+ * par erreur dans .env) : il retombe systematiquement sur la simulation,
+ * exactement comme un operateur non configure. C'est volontaire — deviner le
+ * contrat d'une API qui manipule de l'argent reel serait dangereux : ca
+ * pourrait sembler fonctionner en test puis echouer silencieusement (ou pire)
+ * en production.
+ *
+ * Marche a suivre des reception de la doc/des identifiants GeniusPay :
+ *   1. Renseigner le mapping reel dans les methodes ci-dessous (URL, auth,
+ *      requete, reponse), sur le modele des autres drivers de ce fichier.
+ *   2. Completer public/api/payments/webhook_geniuspay.php (verification de
+ *      signature + extraction reference/statut), sur le modele de
+ *      webhook_orange.php ou webhook_wave.php.
+ *   3. Passer self::INTEGRATION_FINALISEE a true.
+ *   4. Verifier en simulation puis avec de vrais identifiants de recette
+ *      avant toute mise en production.
+ */
+final class GeniusPayDriver implements PaymentDriver
+{
+    private const INTEGRATION_FINALISEE = false;
+
+    private array $config;
+    private string $operateurCode; // orange_money | mtn_money | moov_money | wave
+
+    public function __construct(array $config, string $operateurCode)
+    {
+        $this->config = $config;
+        $this->operateurCode = $operateurCode;
+    }
+
+    public static function estDisponible(array $config): bool
+    {
+        return $config['base_url'] !== '' && $config['api_key'] !== '';
+    }
+
+    private function simulation(string $numero, float $montant, string $reference): array
+    {
+        return [
+            'statut' => 'reussi',
+            'reference' => 'SIM-GENIUSPAY-' . strtoupper(bin2hex(random_bytes(4))),
+            'redirect_url' => null,
+            'instructions' => null,
+            'payload' => [
+                'mode' => 'simulation',
+                'agregateur' => 'geniuspay',
+                'operateur' => $this->operateurCode,
+                'numero' => $numero,
+                'montant' => $montant,
+                'commande_ref' => $reference,
+                'note' => 'Paiement simule : integration GeniusPay en attente de la documentation API officielle.',
+            ],
+        ];
+    }
+
+    public function initierPaiement(string $numero, float $montant, string $reference, array $contexte = []): array
+    {
+        if (!self::INTEGRATION_FINALISEE || !self::estDisponible($this->config)) {
+            return $this->simulation($numero, $montant, $reference);
+        }
+
+        // Cette branche ne peut pas etre atteinte tant que la constante
+        // ci-dessus n'a pas ete mise a true en connaissance de cause (voir
+        // le commentaire de classe).
+        throw new \RuntimeException('Integration GeniusPay non finalisee : documentation API requise.');
+    }
+}
+
 final class PaymentGateway
 {
     public static function driver(string $methode): PaymentDriver
     {
         $config = MOBILE_MONEY_CONFIG;
 
+        if ($methode === 'especes') {
+            return new EspecesDriver();
+        }
+
+        // GeniusPay agrege les 4 operateurs Mobile Money : s'il est configure,
+        // il remplace l'appel direct a l'operateur (voir GeniusPayDriver).
+        if (in_array($methode, ['orange_money', 'mtn_money', 'moov_money', 'wave'], true)
+            && GeniusPayDriver::estDisponible($config['geniuspay'])) {
+            return new GeniusPayDriver($config['geniuspay'], $methode);
+        }
+
         return match ($methode) {
             'orange_money' => new OrangeMoneyDriver($config['orange_money'], 'orange_money'),
             'mtn_money' => new MtnMoneyDriver($config['mtn_money'], 'mtn_money'),
             'moov_money' => new MoovMoneyDriver($config['moov_money'], 'moov_money'),
             'wave' => new WaveDriver($config['wave'], 'wave'),
-            'especes' => new EspecesDriver(),
             default => throw new InvalidArgumentException('Methode de paiement inconnue : ' . $methode),
         };
     }

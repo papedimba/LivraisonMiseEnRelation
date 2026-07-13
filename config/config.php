@@ -58,6 +58,17 @@ define('MOBILE_MONEY_CONFIG', [
         'api_key' => env('WAVE_API_KEY', ''),
         'webhook_secret' => env('WAVE_WEBHOOK_SECRET', ''),
     ],
+    'geniuspay' => [
+        // Agregateur Mobile Money (Orange/MTN/Moov/Wave via une seule API).
+        // INTEGRATION EN ATTENTE DE LA DOCUMENTATION OFFICIELLE : renseigner
+        // ces valeurs ne suffit pas a activer de vrais paiements, l'appel
+        // reseau reste a implementer (voir
+        // includes/PaymentGateway.php::GeniusPayDriver).
+        'base_url' => env('GENIUSPAY_BASE_URL', ''),
+        'api_key' => env('GENIUSPAY_API_KEY', ''),
+        'merchant_id' => env('GENIUSPAY_MERCHANT_ID', ''),
+        'webhook_secret' => env('GENIUSPAY_WEBHOOK_SECRET', ''),
+    ],
 ]);
 
 if (APP_ENV === 'production') {
