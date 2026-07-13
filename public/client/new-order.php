@@ -73,8 +73,9 @@ require __DIR__ . '/../includes/header.php';
             </select>
         </div>
         <div class="form-group hidden" id="zone-numero-paiement">
-            <label for="numero_paiement">Numero Mobile Money</label>
+            <label for="numero_paiement">Votre numero Mobile Money</label>
             <input type="text" id="numero_paiement" placeholder="07 00 00 00 00">
+            <p class="text-muted" style="font-size:0.85rem;margin-top:0.25rem;">Vous recevrez la demande de paiement sur ce numero (le votre, pas celui du livreur).</p>
         </div>
     </div>
 
