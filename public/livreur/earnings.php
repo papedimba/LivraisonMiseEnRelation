@@ -53,6 +53,7 @@ require __DIR__ . '/../includes/header.php';
     </div>
     <div class="card">
         <h2>Demander un retrait</h2>
+        <p class="text-muted" style="font-size:0.85rem;">Vos courses payees en Mobile Money declenchent deja un retrait automatique vers votre numero enregistre, sans action de votre part. Ce formulaire ne sert qu'a retirer un solde residuel (ex. retrait automatique rejete).</p>
         <div id="alert-zone"></div>
         <form id="withdraw-form">
             <div class="form-group">
@@ -74,6 +75,17 @@ require __DIR__ . '/../includes/header.php';
             </div>
             <button type="submit" class="btn btn-block">Demander le retrait</button>
         </form>
+    </div>
+</div>
+
+<div class="card mt-1">
+    <h2>Historique de mes retraits</h2>
+    <p class="text-muted" style="font-size:0.85rem;">Inclut les retraits automatiques (courses Mobile Money) et manuels.</p>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Date</th><th>Montant</th><th>Methode</th><th>Numero</th><th>Statut</th></tr></thead>
+            <tbody id="liste-retraits"><tr><td colspan="5" class="text-muted">Chargement...</td></tr></tbody>
+        </table>
     </div>
 </div>
 
@@ -115,6 +127,7 @@ document.getElementById('withdraw-form').addEventListener('submit', async (e) =>
         alertZone.innerHTML = '<div class="alert alert-succes">Demande de retrait envoyee.</div>';
         document.getElementById('withdraw-form').reset();
         chargerGains();
+        chargerRetraits();
     } catch (err) {
         alertZone.innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
     }
@@ -179,6 +192,37 @@ async function attendreConfirmationDette(reference, tentative = 0) {
     setTimeout(() => attendreConfirmationDette(reference, tentative + 1), 3000);
 }
 
+const METHODE_LABELS = {
+    orange_money: 'Orange Money', mtn_money: 'MTN Money', moov_money: 'Moov Money',
+    wave: 'Wave', especes: 'Especes',
+};
+const RETRAIT_STATUT_LABELS = {
+    en_attente: { label: 'En attente', classe: 'tag-attente' },
+    traite: { label: 'Traite', classe: 'tag-succes' },
+    rejete: { label: 'Rejete', classe: 'tag-danger' },
+};
+
+async function chargerRetraits() {
+    const tbody = document.getElementById('liste-retraits');
+    try {
+        const res = await Api.get('/api/livreur/withdrawals_list.php');
+        const retraits = res.data.retraits || [];
+        tbody.innerHTML = retraits.length ? retraits.map(r => {
+            const s = RETRAIT_STATUT_LABELS[r.statut] || { label: r.statut, classe: 'tag-info' };
+            return `<tr>
+                <td>${formatDate(r.created_at)}</td>
+                <td>${formatMontant(r.montant)}</td>
+                <td>${escapeHtml(METHODE_LABELS[r.methode] || r.methode)}</td>
+                <td>${escapeHtml(r.numero_reception)}</td>
+                <td><span class="tag ${s.classe}">${s.label}</span></td>
+            </tr>`;
+        }).join('') : '<tr><td colspan="5" class="text-muted">Aucun retrait pour le moment.</td></tr>';
+    } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-muted">Erreur de chargement.</td></tr>';
+    }
+}
+
 chargerGains();
+chargerRetraits();
 </script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>

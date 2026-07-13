@@ -209,6 +209,54 @@ function tests_api(string $base): void
     $r = $livreur->post('/api/livreur/rate_client.php', ['commande_id' => $commandeId, 'note' => 4]);
     t_eq(409, $r['code'], 'double notation du meme client rejetee');
 
+    // -- Retrait automatique (paiement electronique) ----------------------------
+    t_section('Retrait automatique (paiement electronique)');
+    // A l'inverse des especes : une course payee en Mobile Money doit
+    // declencher un retrait automatique du gain net du livreur, sur le meme
+    // canal que celui utilise par le client, vers son numero enregistre -
+    // sans qu'il ait besoin de remplir le formulaire de retrait lui-meme.
+    $r = $client->post('/api/client/orders_create.php', [
+        'type_livraison_id' => 1, 'adresse_depart' => 'E', 'lat_depart' => 7.69, 'lng_depart' => -5.03,
+        'adresse_arrivee' => 'F', 'lat_arrivee' => 7.70, 'lng_arrivee' => -5.04, 'mode_paiement' => 'wave',
+    ]);
+    t_eq(201, $r['code'], 'commande payee via Wave creee');
+    $commandeWaveId = $r['body']['data']['commande_id'] ?? 0;
+    $refWave = $r['body']['data']['reference'] ?? '';
+
+    // montant_estime / commission_montant ne sont pas renvoyes a la creation
+    // (orders_create.php renvoie 'montant_total') : on les relit via le suivi.
+    $r = $client->get('/api/client/orders_track.php?reference=' . urlencode($refWave));
+    $montantWave = (float) ($r['body']['data']['commande']['montant_estime'] ?? 0);
+    $commissionWave = (float) ($r['body']['data']['commande']['commission_montant'] ?? 0);
+
+    $r = $livreur->post('/api/livreur/orders_accept.php', ['commande_id' => $commandeWaveId]);
+    t_eq(200, $r['code'], 'acceptation de la commande Wave');
+    $livreur->post('/api/livreur/orders_update_status.php', ['commande_id' => $commandeWaveId, 'statut' => 'recuperee']);
+    $livreur->post('/api/livreur/orders_update_status.php', ['commande_id' => $commandeWaveId, 'statut' => 'en_cours']);
+
+    $r = $client->get('/api/client/orders_track.php?reference=' . urlencode($refWave));
+    $codeLivraisonWave = $r['body']['data']['commande']['code_livraison'] ?? '';
+
+    $retraitsAvant = $livreur->get('/api/livreur/withdrawals_list.php');
+    $nombreRetraitsAvant = count($retraitsAvant['body']['data']['retraits'] ?? []);
+
+    $r = $livreur->post('/api/livreur/confirm_delivery.php', ['commande_id' => $commandeWaveId, 'code_livraison' => $codeLivraisonWave]);
+    t_eq(200, $r['code'], 'livraison Wave confirmee');
+
+    $r = $livreur->get('/api/livreur/earnings.php');
+    t_eq(0.0, (float) ($r['body']['data']['solde_disponible'] ?? -1),
+        'le gain d\'une course Mobile Money ne s\'accumule pas sur le solde (retire automatiquement)');
+
+    $r = $livreur->get('/api/livreur/withdrawals_list.php');
+    $retraits = $r['body']['data']['retraits'] ?? [];
+    t_eq($nombreRetraitsAvant + 1, count($retraits), 'un retrait supplementaire apparait apres la livraison Wave');
+    $retraitAuto = $retraits[0] ?? [];
+    t_eq('wave', $retraitAuto['methode'] ?? null, 'le retrait automatique utilise le meme canal que le paiement du client (Wave)');
+    t_eq('en_attente', $retraitAuto['statut'] ?? null, 'le retrait automatique est en attente de traitement par l\'admin');
+    $gainAttendu = round($montantWave - $commissionWave, 0);
+    t_eq($gainAttendu, round((float) ($retraitAuto['montant'] ?? -1), 0), 'le montant du retrait automatique correspond au gain net (montant - commission)');
+    t_eq("07{$suffix}22", $retraitAuto['numero_reception'] ?? null, 'le retrait automatique vise le numero enregistre du livreur');
+
     // -- Codes promo -----------------------------------------------------------
     t_section('Codes promo');
     $codePromo = 'TEST' . $suffix;
