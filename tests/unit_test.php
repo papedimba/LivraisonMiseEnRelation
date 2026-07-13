@@ -44,22 +44,27 @@ function tests_unitaires(): void
     t_ok(is_valid_phone('0700000000'), 'telephone valide');
     t_ok(!is_valid_phone('abc'), 'telephone invalide rejete');
 
-    t_section('Passerelle de paiement : agregateur GeniusPay (integration en attente)');
-    // Sans identifiants (.env par defaut) : GeniusPay n'est pas selectionne, le
-    // driver direct de l'operateur reste utilise (comportement inchange).
-    t_ok(!GeniusPayDriver::estDisponible(['base_url' => '', 'api_key' => '']), 'GeniusPay indisponible sans identifiants');
+    t_section('Passerelle de paiement : agregateur GeniusPay');
+    // Ces assertions restent purement structurelles (estDisponible(), choix du
+    // driver) : aucun appel reseau n'est jamais declenche par un test unitaire,
+    // seule initierPaiement() en ferait un (teste separement, hors CI, avec de
+    // vrais identifiants de recette).
+    $configVide = ['base_url' => '', 'api_key' => '', 'api_secret' => '', 'webhook_secret' => ''];
+    t_ok(!GeniusPayDriver::estDisponible($configVide), 'GeniusPay indisponible sans identifiants');
     t_ok(PaymentGateway::driver('orange_money') instanceof OrangeMoneyDriver, 'sans GeniusPay configure, orange_money utilise son driver direct');
     t_ok(PaymentGateway::driver('especes') instanceof EspecesDriver, 'le paiement especes reste inchange');
 
-    // Meme avec des identifiants renseignes, tant que l'integration n'est pas
-    // finalisee (documentation officielle non recue), AUCUN appel reseau ne
-    // doit etre tente : le driver doit retomber sur la simulation, jamais lever
-    // d'exception ni deviner un contrat d'API reel.
-    t_ok(GeniusPayDriver::estDisponible(['base_url' => 'https://exemple.test', 'api_key' => 'cle-test']), 'GeniusPay se declare disponible si des identifiants sont fournis');
-    $driverGeniusPay = new GeniusPayDriver(['base_url' => 'https://exemple.test', 'api_key' => 'cle-test'], 'orange_money');
-    $resultatGeniusPay = $driverGeniusPay->initierPaiement('0700000000', 1000.0, 'CMD-TEST-GENIUSPAY');
-    t_eq('reussi', $resultatGeniusPay['statut'], 'GeniusPay retombe sur la simulation tant que l\'integration n\'est pas finalisee (pas d\'appel reseau devine)');
-    t_eq('simulation', $resultatGeniusPay['payload']['mode'] ?? null, 'le paiement simule est explicitement marque comme tel');
+    // Cle publique seule (sans cle secrete) : GeniusPay ne doit PAS se
+    // declarer disponible (les deux sont requises pour authentifier une requete).
+    $configIncomplete = ['base_url' => 'http://pay.genius.ci/api/v1/merchant', 'api_key' => 'pk_test_x', 'api_secret' => '', 'webhook_secret' => ''];
+    t_ok(!GeniusPayDriver::estDisponible($configIncomplete), 'GeniusPay indisponible sans cle secrete (api_secret manquante)');
+
+    // Configuration complete : GeniusPay se declare disponible (deviendrait
+    // l'agregateur pour Orange/MTN/Wave - jamais Moov Money, qu'il ne supporte
+    // pas, voir PaymentGateway::driver() et le test d'integration dedie dans
+    // tests/api_test.php pour le routage reel via la config admin en base).
+    $configComplete = ['base_url' => 'http://pay.genius.ci/api/v1/merchant', 'api_key' => 'pk_test_x', 'api_secret' => 'sk_test_x', 'webhook_secret' => 'whsec_test_x'];
+    t_ok(GeniusPayDriver::estDisponible($configComplete), 'GeniusPay disponible avec cle publique et cle secrete');
 
     t_section('Web Push : signature VAPID ES256 (round-trip)');
     $res = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_EC, 'curve_name' => 'prime256v1']);

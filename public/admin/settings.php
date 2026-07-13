@@ -397,10 +397,10 @@ const MM_OPERATEURS = [
     ] },
     { code: 'geniuspay', label: 'GeniusPay (agregateur)', champs: [
         { nom: 'base_url', label: 'URL de base', type: 'text' },
-        { nom: 'api_key', label: 'API Key', type: 'secret' },
-        { nom: 'merchant_id', label: 'Merchant ID', type: 'secret' },
+        { nom: 'api_key', label: 'Cle publique (X-API-Key)', type: 'secret' },
+        { nom: 'api_secret', label: 'Cle secrete (X-API-Secret)', type: 'secret' },
         { nom: 'webhook_secret', label: 'Webhook Secret', type: 'secret' },
-    ], note: 'Si configure, remplace l\'appel direct a Orange/MTN/Moov/Wave (agregateur unique). Integration en attente de la documentation officielle GeniusPay : tant que le code n\'est pas finalise cote serveur, les paiements restent simules meme si des identifiants sont renseignes ici.' },
+    ], note: 'Si configure, remplace l\'appel direct a Orange Money / MTN / Wave (agregateur unique). Moov Money continue de passer par son propre driver : GeniusPay ne le supporte pas.' },
 ];
 
 function mmBadgeConfig(configure) {

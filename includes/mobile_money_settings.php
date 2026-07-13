@@ -21,7 +21,7 @@ const MOBILE_MONEY_CHAMPS = [
     'mtn_money' => ['base_url', 'environment', 'subscription_key', 'api_user', 'api_key'],
     'moov_money' => ['base_url', 'client_id', 'client_secret', 'merchant_id'],
     'wave' => ['base_url', 'api_key', 'webhook_secret'],
-    'geniuspay' => ['base_url', 'api_key', 'merchant_id', 'webhook_secret'],
+    'geniuspay' => ['base_url', 'api_key', 'api_secret', 'webhook_secret'],
 ];
 
 // Champs non sensibles (affiches et modifiables en clair). Tout le reste est

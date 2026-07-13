@@ -384,18 +384,23 @@ function tests_api(string $base): void
     t_eq('••••1234', $etatWave2['champs']['api_key']['apercu'] ?? null, 'la cle API precedente est conservee (champ vide = pas d\'ecrasement)');
     t_eq('••••9999', $etatWave2['champs']['webhook_secret']['apercu'] ?? null, 'le webhook secret est mis a jour');
 
-    // GeniusPay : renseigner des identifiants ne suffit pas a activer de vrais
-    // paiements (integration en attente de la doc officielle, cf. PaymentGateway).
+    // GeniusPay : cle publique seule (sans cle secrete) ne suffit pas a
+    // activer l'agregateur (les deux sont requises pour authentifier une
+    // requete, cf. GeniusPayDriver::estDisponible) - Wave garde son driver
+    // direct, la commande passe donc en simulation comme d'habitude.
     $r = $admin->post('/api/admin/mobile_money_config.php', [
-        'operateur' => 'geniuspay', 'champs' => ['base_url' => 'https://exemple.test', 'api_key' => 'cle-geniuspay-test'],
+        'operateur' => 'geniuspay', 'champs' => ['base_url' => 'http://pay.genius.ci/api/v1/merchant', 'api_key' => 'pk_test_incomplet'],
     ]);
-    t_eq(200, $r['code'], 'enregistrement des identifiants GeniusPay');
+    t_eq(200, $r['code'], 'enregistrement partiel des identifiants GeniusPay (cle secrete manquante)');
+    $etatGeniusPay = $r['body']['data']['etat'] ?? [];
+    t_eq(false, $etatGeniusPay['configure'] ?? null, 'GeniusPay non configure tant que la cle secrete manque');
+
     $r = $client->post('/api/auth/login.php', ['email' => $emailClient, 'password' => 'MotDePasse1']);
     $r = $client->post('/api/client/orders_create.php', [
         'type_livraison_id' => 1, 'lat_depart' => 7.69, 'lng_depart' => -5.03,
         'lat_arrivee' => 7.70, 'lng_arrivee' => -5.04, 'mode_paiement' => 'wave',
     ]);
-    t_eq(201, $r['code'], 'commande payee via Wave malgre GeniusPay configure (agregateur non finalise)');
+    t_eq(201, $r['code'], 'commande payee via Wave : GeniusPay incomplet ne devient pas l\'agregateur');
 
     // Reinitialisation : retour aux valeurs de .env (plus aucune surcharge admin).
     $r = $admin->post('/api/admin/mobile_money_config.php', ['operateur' => 'wave', 'reinitialiser' => true]);
@@ -403,6 +408,9 @@ function tests_api(string $base): void
     $etatWaveReset = $r['body']['data']['etat'] ?? [];
     t_eq(false, $etatWaveReset['configure'] ?? null, 'wave redevient non configure apres reinitialisation');
     t_eq(false, $etatWaveReset['champs']['api_key']['renseigne'] ?? null, 'la cle API n\'est plus renseignee apres reinitialisation');
+
+    $r = $admin->post('/api/admin/mobile_money_config.php', ['operateur' => 'geniuspay', 'reinitialiser' => true]);
+    t_eq(200, $r['code'], 'reinitialisation des identifiants GeniusPay');
 
     // -- Moyens de transport (multiplicateur tarifaire) ------------------------
     t_section('Moyens de transport');
