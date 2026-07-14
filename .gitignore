@@ -3,6 +3,8 @@ storage/uploads/**
 !storage/uploads/**/.gitkeep
 storage/cache/**
 !storage/cache/.gitkeep
+storage/logs/**
+!storage/logs/.gitkeep
 storage/*.pem
 .DS_Store
 *.log

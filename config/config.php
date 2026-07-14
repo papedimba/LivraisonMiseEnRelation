@@ -76,6 +76,19 @@ if (APP_ENV === 'production') {
     ini_set('display_errors', '1');
 }
 
+// Journal d'erreurs dedie et previsible (storage/logs/app.log), plutot que de
+// compter sur l'emplacement variable (et parfois inaccessible) du journal
+// PHP par defaut sur un hebergement mutualise. Toujours retrouvable en FTP,
+// quel que soit l'hebergeur.
+define('LOG_PATH', STORAGE_PATH . '/logs/app.log');
+if (!is_dir(STORAGE_PATH . '/logs')) {
+    @mkdir(STORAGE_PATH . '/logs', 0775, true);
+}
+if (is_dir(STORAGE_PATH . '/logs') && is_writable(STORAGE_PATH . '/logs')) {
+    ini_set('log_errors', '1');
+    ini_set('error_log', LOG_PATH);
+}
+
 // Les requetes API doivent toujours repondre en JSON, meme en cas d'erreur
 // fatale (sinon le front recoit un 500 nu et affiche "Reponse inattendue").
 $estRequeteApi = static function (): bool {

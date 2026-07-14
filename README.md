@@ -189,11 +189,22 @@ Le paiement Mobile Money est **asynchrone** :
 | Orange Money | `https://votre-domaine.com/api/payments/webhook_orange.php` |
 | MTN MoMo | `https://votre-domaine.com/api/payments/webhook_mtn.php` |
 | Moov Money | `https://votre-domaine.com/api/payments/webhook_moov.php` |
+| GeniusPay (agregateur Orange/MTN/Wave) | `https://votre-domaine.com/api/payments/webhook_geniuspay.php` |
 
-Pour Wave, renseignez `WAVE_WEBHOOK_SECRET` : la signature HMAC des webhooks est alors verifiee.
-Les endpoints, chemins d'API et noms de champs peuvent necessiter un ajustement mineur selon le
-contrat marchand fourni par chaque operateur ; ils sont parametrables via les variables `*_BASE_URL`
-de `.env` et centralises dans `includes/PaymentGateway.php`.
+Pour Wave et GeniusPay, renseignez respectivement `WAVE_WEBHOOK_SECRET` et `GENIUSPAY_WEBHOOK_SECRET` :
+la signature HMAC des webhooks est alors verifiee. Les endpoints, chemins d'API et noms de champs
+peuvent necessiter un ajustement mineur selon le contrat marchand fourni par chaque operateur ; ils
+sont parametrables via les variables `*_BASE_URL` de `.env` (ou via l'ecran admin **Parametres >
+Paiement Mobile Money**, qui surcharge `.env` sans redeploiement) et centralises dans
+`includes/PaymentGateway.php`.
+
+### Diagnostiquer un echec de paiement
+
+Un paiement qui echoue (statut `echec`) journalise systematiquement la cause exacte (code HTTP,
+reponse brute de l'operateur) via `error_log()`. Sur un hebergement mutualise, l'emplacement du
+journal PHP par defaut varie selon l'hebergeur et est parfois difficile a localiser : l'application
+ecrit donc aussi dans un fichier dedie et previsible, **`storage/logs/app.log`**, consultable en FTP
+quel que soit l'hebergeur (cree automatiquement si le dossier `storage/` est inscriptible).
 
 ## Assistant IA (Claude)
 
