@@ -66,6 +66,17 @@ function tests_unitaires(): void
     $configComplete = ['base_url' => 'http://pay.genius.ci/api/v1/merchant', 'api_key' => 'pk_test_x', 'api_secret' => 'sk_test_x', 'webhook_secret' => 'whsec_test_x'];
     t_ok(GeniusPayDriver::estDisponible($configComplete), 'GeniusPay disponible avec cle publique et cle secrete');
 
+    // Normalisation du numero au format E.164 attendu par GeniusPay : un
+    // numero local ivoirien non prefixe provoquait un rejet silencieux
+    // (422 cote GeniusPay, remonte comme un simple "echec" sans indice).
+    $driverGeniusPay = new GeniusPayDriver($configComplete, 'wave');
+    $formater = new ReflectionMethod(GeniusPayDriver::class, 'formaterNumeroE164');
+    $formater->setAccessible(true);
+    t_eq('+225700000000', $formater->invoke($driverGeniusPay, '0700000000'), 'numero local ivoirien prefixe par +225');
+    t_eq('+225700000000', $formater->invoke($driverGeniusPay, '07 00 00 00 00'), 'espaces retires avant normalisation');
+    t_eq('+221771234567', $formater->invoke($driverGeniusPay, '+221771234567'), 'numero deja au format E.164 inchange');
+    t_eq('+225700000000', $formater->invoke($driverGeniusPay, '225700000000'), 'indicatif deja present (sans +) simplement prefixe');
+
     t_section('Web Push : signature VAPID ES256 (round-trip)');
     $res = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_EC, 'curve_name' => 'prime256v1']);
     if ($res === false) {

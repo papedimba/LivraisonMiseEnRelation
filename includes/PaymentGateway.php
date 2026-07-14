@@ -435,6 +435,31 @@ final class GeniusPayDriver implements PaymentDriver
         ];
     }
 
+    /**
+     * Normalise un numero de telephone au format international E.164 attendu
+     * par GeniusPay (leur doc l'illustre en "+221771234567"). L'app collecte
+     * des numeros au format local ivoirien (ex. "0700000000" - voir
+     * is_valid_phone()) : sans cet indicatif, GeniusPay rejette la requete en
+     * validation (422), ce qui remontait ici comme un echec de paiement
+     * silencieux et incomprehensible.
+     */
+    private function formaterNumeroE164(string $numero): string
+    {
+        $numero = preg_replace('/[^\d+]/', '', $numero) ?? $numero;
+        if (str_starts_with($numero, '+')) {
+            return $numero;
+        }
+        if (str_starts_with($numero, '225')) {
+            return '+' . $numero;
+        }
+        // Format local ivoirien (10 chiffres, ex: 0700000000) : on retire le 0
+        // initial et on prefixe l'indicatif pays.
+        if (preg_match('/^0(\d{9,10})$/', $numero, $m)) {
+            return '+225' . $m[1];
+        }
+        return '+225' . $numero;
+    }
+
     public function initierPaiement(string $numero, float $montant, string $reference, array $contexte = []): array
     {
         if (!self::estDisponible($this->config)) {
@@ -446,7 +471,7 @@ final class GeniusPayDriver implements PaymentDriver
             'currency' => DEVISE_PAIEMENT,
             'payment_method' => self::MAPPING_OPERATEUR[$this->operateurCode] ?? $this->operateurCode,
             'description' => 'CityHub 225 - ' . $reference,
-            'customer' => ['phone' => $numero],
+            'customer' => ['phone' => $this->formaterNumeroE164($numero)],
             // Notre reference (commande ou dette) transite en metadata : GeniusPay
             // ne propose pas de champ dedie et genere sa propre reference "MTX-...".
             'metadata' => ['order_id' => $reference],
@@ -459,6 +484,16 @@ final class GeniusPayDriver implements PaymentDriver
         ], $corps);
 
         if ($res['code'] !== 201 || !($res['body']['success'] ?? false)) {
+            // Journalise la vraie raison (code HTTP + corps de la reponse
+            // GeniusPay) : sans ca, un echec est totalement indiagnosticable
+            // (le front n'affiche qu'un message generique "Le paiement a echoue").
+            error_log(sprintf(
+                'GeniusPay initierPaiement echec (reference=%s, operateur=%s) : HTTP %d - %s',
+                $reference,
+                $this->operateurCode,
+                $res['code'],
+                $res['raw'] !== '' ? $res['raw'] : '(reponse vide - connexion/DNS/timeout)'
+            ));
             return [
                 'statut' => 'echec',
                 'reference' => $reference,
