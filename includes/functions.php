@@ -1,6 +1,28 @@
 <?php
 declare(strict_types=1);
 
+// Definition de secours pour app_log() (voir la definition canonique dans
+// config/config.php) : ce fichier est requis separement et explicitement par
+// la quasi-totalite des points d'entree, y compris quand un cache d'opcode
+// (OPcache) sur un hebergement mutualise sert encore une version anterieure
+// de config.php sans cette fonction. Si config.php a deja pu la definir, ce
+// bloc ne fait rien (function_exists()).
+if (!function_exists('app_log')) {
+    function app_log(string $message): void
+    {
+        $chemin = defined('LOG_PATH') ? LOG_PATH : (defined('STORAGE_PATH') ? STORAGE_PATH . '/logs/app.log' : null);
+        if ($chemin === null) {
+            return;
+        }
+        $dossier = dirname($chemin);
+        if (!is_dir($dossier)) {
+            @mkdir($dossier, 0775, true);
+        }
+        $ligne = '[' . date('d-M-Y H:i:s') . ' ' . date_default_timezone_get() . '] ' . $message . PHP_EOL;
+        @file_put_contents($chemin, $ligne, FILE_APPEND | LOCK_EX);
+    }
+}
+
 /**
  * Recupere le corps JSON de la requete (fallback sur $_POST).
  */

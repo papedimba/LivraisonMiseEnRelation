@@ -100,10 +100,12 @@ if (is_dir(STORAGE_PATH . '/logs') && is_writable(STORAGE_PATH . '/logs')) {
  * contrairement a error_log(), impossible pour l'hebergeur de rediriger cette
  * ecriture ailleurs. A utiliser partout dans l'app a la place d'error_log().
  */
-function app_log(string $message): void
-{
-    $ligne = '[' . date('d-M-Y H:i:s') . ' ' . date_default_timezone_get() . '] ' . $message . PHP_EOL;
-    @file_put_contents(LOG_PATH, $ligne, FILE_APPEND | LOCK_EX);
+if (!function_exists('app_log')) {
+    function app_log(string $message): void
+    {
+        $ligne = '[' . date('d-M-Y H:i:s') . ' ' . date_default_timezone_get() . '] ' . $message . PHP_EOL;
+        @file_put_contents(LOG_PATH, $ligne, FILE_APPEND | LOCK_EX);
+    }
 }
 
 // Les requetes API doivent toujours repondre en JSON, meme en cas d'erreur
