@@ -123,7 +123,8 @@ require __DIR__ . '/../includes/header.php';
 
 <div class="card mt-1">
     <h2>Paiement Mobile Money</h2>
-    <p class="text-muted">Identifiants marchand par operateur. Un champ laisse vide lors de l'enregistrement conserve sa valeur actuelle. Tant qu'un operateur n'est pas configure, ses paiements sont simules (confirmes instantanement, sans appel reseau reel).</p>
+    <p class="text-muted">Identifiants marchand par operateur. Un champ laisse vide lors de l'enregistrement conserve sa valeur actuelle. Tant qu'un operateur n'est pas configure, ses paiements sont simules (confirmes instantanement, sans appel reseau reel).
+        En cas d'echec de paiement, consultez le <a href="/admin/logs.php">journal systeme</a> pour en voir la cause exacte.</p>
     <div id="mm-operateurs"></div>
 </div>
 

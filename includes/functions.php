@@ -156,3 +156,27 @@ function csrf_verify(?string $token): bool
 {
     return is_string($token) && !empty($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
+
+/**
+ * Lit les derniers octets d'un fichier (tail simplifie), pour afficher un
+ * journal sans devoir le charger entierement en memoire s'il est volumineux.
+ */
+function lire_fin_fichier(string $chemin, int $maxOctets = 200000): string
+{
+    if (!is_file($chemin) || !is_readable($chemin)) {
+        return '';
+    }
+    $taille = filesize($chemin) ?: 0;
+    $handle = fopen($chemin, 'r');
+    if ($handle === false) {
+        return '';
+    }
+    if ($taille > $maxOctets) {
+        fseek($handle, -$maxOctets, SEEK_END);
+        // Ignore la premiere ligne (probablement tronquee) apres le seek.
+        fgets($handle);
+    }
+    $contenu = stream_get_contents($handle);
+    fclose($handle);
+    return (string) $contenu;
+}
