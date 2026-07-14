@@ -117,7 +117,7 @@ function confirmer_reglement_dette(PDO $db, string $reference, string $statut, a
         $db->commit();
     } catch (Throwable $e) {
         $db->rollBack();
-        error_log('confirmer_reglement_dette error: ' . $e->getMessage());
+        app_log('confirmer_reglement_dette error: ' . $e->getMessage());
         return false;
     }
 
@@ -175,7 +175,7 @@ function confirmer_paiement_par_id(PDO $db, int $paiementId, string $statut, arr
         $db->commit();
     } catch (Throwable $e) {
         $db->rollBack();
-        error_log('confirmer_paiement error: ' . $e->getMessage());
+        app_log('confirmer_paiement error: ' . $e->getMessage());
         return false;
     }
 

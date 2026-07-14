@@ -3,12 +3,12 @@ declare(strict_types=1);
 
 /**
  * Visionneuse du journal d'erreurs (storage/logs/app.log) directement dans
- * l'admin, sans acces FTP/SSH au serveur. Sert aussi de diagnostic quand le
- * fichier semble "introuvable" : sur certains hebergements mutualises,
- * ini_set('error_log', ...) est ignore (droits, open_basedir, configuration
- * serveur) et PHP continue d'ecrire vers son propre journal par defaut,
- * ailleurs sur le serveur. Comparer LOG_PATH (celui que l'app demande) et
- * ini_get('error_log') (celui reellement actif) permet de le detecter.
+ * l'admin, sans acces FTP/SSH au serveur. L'ecriture applicative (app_log(),
+ * voir config/config.php) se fait par ecriture DIRECTE dans ce fichier, sans
+ * dependre de la directive ini 'error_log' - certains hebergements mutualises
+ * l'ignorent purement et simplement (droits, configuration serveur imposee),
+ * ce que 'php_error_log_actif' ci-dessous permet de detecter a titre informatif
+ * (mais n'affecte plus l'ecriture reelle du journal applicatif).
  */
 
 // Cette page EST l'outil de diagnostic : si une erreur imprevue s'y produit
@@ -38,14 +38,12 @@ try {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $body = request_body();
         if ((string) input($body, 'action', '') === 'test_ecriture') {
-            // Ecrit une ligne reperable et confirme si error_log() l'a bien
-            // deposee au chemin attendu (LOG_PATH) plutot qu'ailleurs.
+            // Ecrit une ligne reperable via app_log() (ecriture directe dans
+            // le fichier, independante de la directive ini 'error_log') et
+            // confirme qu'elle est bien arrivee.
             $marqueur = 'TEST-JOURNAL-' . date('Y-m-d H:i:s') . '-' . bin2hex(random_bytes(3));
-            error_log($marqueur);
+            app_log($marqueur);
 
-            // Laisse le temps au systeme de fichiers de finaliser l'ecriture
-            // (generalement instantane, mais certains FS reseau sur mutualise
-            // peuvent avoir un leger delai).
             clearstatcache(true, LOG_PATH);
             $contenu = is_file(LOG_PATH) ? lire_fin_fichier(LOG_PATH, 20000) : '';
             $trouve = str_contains($contenu, $marqueur);
@@ -55,7 +53,7 @@ try {
                 'trouve_dans_log_path' => $trouve,
             ], $trouve
                 ? 'Ecriture confirmee dans storage/logs/app.log.'
-                : 'La ligne de test n\'apparait PAS dans storage/logs/app.log : error_log() ecrit ailleurs (voir php_error_log_actif ci-dessous).');
+                : 'Echec d\'ecriture dans storage/logs/app.log : verifiez que le dossier storage/logs est bien inscriptible par PHP (droits/proprietaire sur le serveur).');
         }
         Response::error('Action inconnue.', 422);
     }

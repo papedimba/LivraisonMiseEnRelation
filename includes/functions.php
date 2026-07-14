@@ -127,7 +127,7 @@ function creer_notification(PDO $db, int $userId, string $titre, string $message
                 WebPush::envoyerAUtilisateur($db, $userId);
             }
         } catch (Throwable $e) {
-            error_log('Push notification error: ' . $e->getMessage());
+            app_log('Push notification error: ' . $e->getMessage());
         }
     }
 }

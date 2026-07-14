@@ -59,7 +59,7 @@ final class WebPush
                 'sub' => VAPID_SUBJECT,
             ], $pem);
         } catch (Throwable $e) {
-            error_log('WebPush JWT error: ' . $e->getMessage());
+            app_log('WebPush JWT error: ' . $e->getMessage());
             return 0;
         }
 

@@ -43,14 +43,16 @@ async function chargerJournal() {
                     <tr><td>Dossier inscriptible</td><td>${libelleBool(infos.dossier_inscriptible)}</td></tr>
                     <tr><td>Fichier app.log present</td><td>${libelleBool(infos.fichier_existe)}</td></tr>
                     <tr><td>Taille</td><td>${infos.fichier_taille_octets !== null ? infos.fichier_taille_octets + ' octets' : '-'}</td></tr>
-                    <tr><td>Journal PHP reellement actif</td><td><code>${escapeHtml(infos.php_error_log_actif)}</code></td></tr>
+                    <tr><td>Journal PHP natif (error_log ini)</td><td><code>${escapeHtml(infos.php_error_log_actif)}</code></td></tr>
                 </tbody>
             </table>
-            ${cheminActifDiffere ? `<div class="alert alert-erreur mt-1">
-                Votre hebergeur ignore la configuration demandee par l'application : PHP ecrit ailleurs
-                que <code>storage/logs/app.log</code> (chemin actif ci-dessus). Les erreurs existent bien,
-                mais dans ce fichier-la - cherchez-le via le panneau d'administration de votre hebergeur,
-                ou demandez-lui confirmation de son emplacement.
+            ${cheminActifDiffere ? `<div class="alert alert-info mt-1">
+                Information : votre hebergeur ignore la directive PHP <code>error_log</code> demandee par
+                l'application (il ecrit ailleurs, chemin ci-dessus). Sans impact sur les evenements de
+                l'app ci-dessous (commandes, paiements...), qui sont ecrits directement dans
+                <code>storage/logs/app.log</code> sans dependre de ce reglage. Seules les erreurs internes
+                du moteur PHP lui-meme (rares, hors du controle de l'application) resteraient a chercher
+                a cet autre emplacement, aupres du panneau d'administration de votre hebergeur.
             </div>` : ''}
         `;
 

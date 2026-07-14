@@ -84,9 +84,26 @@ define('LOG_PATH', STORAGE_PATH . '/logs/app.log');
 if (!is_dir(STORAGE_PATH . '/logs')) {
     @mkdir(STORAGE_PATH . '/logs', 0775, true);
 }
+// Tente aussi de rediriger error_log() natif vers ce fichier : ca fonctionne
+// sur la plupart des hebergements, mais certains l'ignorent purement et
+// simplement (directive verrouillee au niveau systeme, configuration imposee
+// par le pool PHP-FPM...). Voir app_log() ci-dessous pour le mecanisme fiable
+// qui ne depend d'aucun reglage serveur.
 if (is_dir(STORAGE_PATH . '/logs') && is_writable(STORAGE_PATH . '/logs')) {
     ini_set('log_errors', '1');
     ini_set('error_log', LOG_PATH);
+}
+
+/**
+ * Ecrit une ligne dans le journal applicatif (storage/logs/app.log) par ecriture
+ * DIRECTE dans le fichier, sans passer par la directive ini 'error_log' :
+ * contrairement a error_log(), impossible pour l'hebergeur de rediriger cette
+ * ecriture ailleurs. A utiliser partout dans l'app a la place d'error_log().
+ */
+function app_log(string $message): void
+{
+    $ligne = '[' . date('d-M-Y H:i:s') . ' ' . date_default_timezone_get() . '] ' . $message . PHP_EOL;
+    @file_put_contents(LOG_PATH, $ligne, FILE_APPEND | LOCK_EX);
 }
 
 // Les requetes API doivent toujours repondre en JSON, meme en cas d'erreur
@@ -98,7 +115,7 @@ $estRequeteApi = static function (): bool {
 };
 
 set_exception_handler(function (Throwable $e) use ($estRequeteApi): void {
-    error_log('Exception non capturee : ' . $e->getMessage());
+    app_log('Exception non capturee : ' . $e->getMessage());
     if (!headers_sent()) {
         http_response_code(500);
     }

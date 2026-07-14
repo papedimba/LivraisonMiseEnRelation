@@ -57,14 +57,14 @@ final class ClaudeClient
         curl_close($ch);
 
         if ($response === false) {
-            error_log('ClaudeClient curl error: ' . $curlError);
+            app_log('ClaudeClient curl error: ' . $curlError);
             return "Une erreur technique est survenue lors de la communication avec l'assistant. Veuillez reessayer.";
         }
 
         $decoded = json_decode($response, true);
 
         if ($httpCode !== 200 || !isset($decoded['content'][0]['text'])) {
-            error_log('ClaudeClient API error (HTTP ' . $httpCode . '): ' . $response);
+            app_log('ClaudeClient API error (HTTP ' . $httpCode . '): ' . $response);
             return "L'assistant est momentanement indisponible. Veuillez reessayer dans quelques instants.";
         }
 

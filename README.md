@@ -201,10 +201,17 @@ Paiement Mobile Money**, qui surcharge `.env` sans redeploiement) et centralises
 ### Diagnostiquer un echec de paiement
 
 Un paiement qui echoue (statut `echec`) journalise systematiquement la cause exacte (code HTTP,
-reponse brute de l'operateur) via `error_log()`. Sur un hebergement mutualise, l'emplacement du
-journal PHP par defaut varie selon l'hebergeur et est parfois difficile a localiser : l'application
-ecrit donc aussi dans un fichier dedie et previsible, **`storage/logs/app.log`**, consultable en FTP
-quel que soit l'hebergeur (cree automatiquement si le dossier `storage/` est inscriptible).
+reponse brute de l'operateur) via `app_log()` (`config/config.php`), qui **ecrit directement** dans
+**`storage/logs/app.log`** sans passer par la directive ini `error_log` de PHP. Ce choix est
+deliberre : sur beaucoup d'hebergements mutualises, `ini_set('error_log', ...)` est purement et
+simplement ignore (directive verrouillee, configuration imposee par le pool PHP-FPM...), et le
+journal PHP natif continue d'ecrire ailleurs quoi qu'on fasse - l'ecriture directe dans le fichier
+contourne totalement ce probleme.
+
+Le plus simple pour consulter ce journal : l'ecran admin **`/admin/logs.php`** (diagnostic +
+dernieres lignes + bouton de test d'ecriture), sans acces FTP/SSH necessaire. Le fichier reste aussi
+consultable directement en FTP au meme endroit, quel que soit l'hebergeur (dossier `storage/logs/`
+cree automatiquement si `storage/` est inscriptible).
 
 ## Assistant IA (Claude)
 

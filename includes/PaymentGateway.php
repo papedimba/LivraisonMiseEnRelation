@@ -56,7 +56,7 @@ final class HttpClient
         curl_close($ch);
 
         if ($raw === false) {
-            error_log('HttpClient error (' . $url . '): ' . $erreur);
+            app_log('HttpClient error (' . $url . '): ' . $erreur);
             return ['code' => 0, 'body' => [], 'raw' => ''];
         }
 
@@ -487,7 +487,7 @@ final class GeniusPayDriver implements PaymentDriver
             // Journalise la vraie raison (code HTTP + corps de la reponse
             // GeniusPay) : sans ca, un echec est totalement indiagnosticable
             // (le front n'affiche qu'un message generique "Le paiement a echoue").
-            error_log(sprintf(
+            app_log(sprintf(
                 'GeniusPay initierPaiement echec (reference=%s, operateur=%s) : HTTP %d - %s',
                 $reference,
                 $this->operateurCode,

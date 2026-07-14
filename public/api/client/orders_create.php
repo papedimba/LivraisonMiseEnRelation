@@ -245,7 +245,7 @@ try {
     require_once __DIR__ . '/../../../includes/dispatch.php';
     dispatcher_commande($db, $commandeId);
 } catch (Throwable $e) {
-    error_log('Dispatch error: ' . $e->getMessage());
+    app_log('Dispatch error: ' . $e->getMessage());
 }
 
 Response::created([

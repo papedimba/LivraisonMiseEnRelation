@@ -60,7 +60,7 @@ if ($statut !== null && $reference !== '') {
 }
 
 if ($type === 'payment.refunded') {
-    error_log('Webhook GeniusPay : remboursement recu, verification manuelle requise. Payload : ' . substr($raw, 0, 2000));
+    app_log('Webhook GeniusPay : remboursement recu, verification manuelle requise. Payload : ' . substr($raw, 0, 2000));
 }
 
 http_response_code(200);
