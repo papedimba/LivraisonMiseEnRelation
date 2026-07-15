@@ -15,16 +15,28 @@ require __DIR__ . '/../includes/header.php';
 </div>
 
 <div class="grid grid-4 mb-1">
-    <div class="stat-tile"><div class="label">Chiffre d'affaires</div><div class="valeur" id="a-ca">-</div></div>
-    <div class="stat-tile"><div class="label">Commissions</div><div class="valeur" id="a-comm">-</div></div>
-    <div class="stat-tile"><div class="label">Commandes livrees</div><div class="valeur" id="a-livrees">-</div></div>
-    <div class="stat-tile"><div class="label">Panier moyen</div><div class="valeur" id="a-panier">-</div></div>
+    <div class="tile-hero violet">
+        <div class="entete">
+            <div class="entete-libelle"><span class="icone-rond">💵</span> Chiffre d'affaires</div>
+        </div>
+        <div class="montant" id="a-ca">-</div>
+        <div class="sous-texte">Sur la periode selectionnee</div>
+    </div>
+    <div class="tile-hero vert">
+        <div class="entete">
+            <div class="entete-libelle"><span class="icone-rond">🏦</span> Commissions</div>
+        </div>
+        <div class="montant" id="a-comm">-</div>
+        <div class="sous-texte">Part plateforme encaissee</div>
+    </div>
+    <div class="stat-tile"><div><div class="label">Commandes livrees</div><div class="valeur" id="a-livrees">-</div></div><div class="stat-icone icone-vert">📦</div></div>
+    <div class="stat-tile"><div><div class="label">Panier moyen</div><div class="valeur" id="a-panier">-</div></div><div class="stat-icone icone-orange">🧾</div></div>
 </div>
 <div class="grid grid-4 mb-1">
-    <div class="stat-tile"><div class="label">Taux de livraison</div><div class="valeur" id="a-tx-livr">-</div></div>
-    <div class="stat-tile"><div class="label">Taux d'annulation</div><div class="valeur" id="a-tx-annul">-</div></div>
-    <div class="stat-tile"><div class="label">Acceptation dispatch</div><div class="valeur" id="a-tx-accept">-</div></div>
-    <div class="stat-tile"><div class="label">Delai livraison moyen</div><div class="valeur" id="a-delai">-</div></div>
+    <div class="stat-tile"><div><div class="label">Taux de livraison</div><div class="valeur" id="a-tx-livr">-</div></div><div class="stat-icone icone-vert">✅</div></div>
+    <div class="stat-tile"><div><div class="label">Taux d'annulation</div><div class="valeur" id="a-tx-annul">-</div></div><div class="stat-icone icone-rouge">🚫</div></div>
+    <div class="stat-tile"><div><div class="label">Acceptation dispatch</div><div class="valeur" id="a-tx-accept">-</div></div><div class="stat-icone icone-vert">🎯</div></div>
+    <div class="stat-tile"><div><div class="label">Delai livraison moyen</div><div class="valeur" id="a-delai">-</div></div><div class="stat-icone icone-orange">⏱️</div></div>
 </div>
 
 <div class="grid grid-2 mb-1">
@@ -50,9 +62,9 @@ require __DIR__ . '/../includes/header.php';
 </div>
 
 <div class="grid grid-3 mb-1">
-    <div class="stat-tile"><div class="label">Reclamations ouvertes</div><div class="valeur" id="stat-reclamations">-</div></div>
-    <div class="stat-tile"><div class="label">Retraits en attente</div><div class="valeur" id="stat-retraits">-</div></div>
-    <div class="stat-tile"><div class="label">Utilisateurs actifs</div><div class="valeur" id="stat-users">-</div></div>
+    <div class="stat-tile"><div><div class="label">Reclamations ouvertes</div><div class="valeur" id="stat-reclamations">-</div></div><div class="stat-icone icone-rouge">⚠️</div></div>
+    <div class="stat-tile"><div><div class="label">Retraits en attente</div><div class="valeur" id="stat-retraits">-</div></div><div class="stat-icone icone-orange">💳</div></div>
+    <div class="stat-tile"><div><div class="label">Utilisateurs actifs</div><div class="valeur" id="stat-users">-</div></div><div class="stat-icone icone-vert">👥</div></div>
 </div>
 
 <div class="grid grid-2 mb-1">

@@ -9,11 +9,19 @@ require __DIR__ . '/../includes/header.php';
 
 <div id="alerte-dette"></div>
 
-<div class="grid grid-4 mb-1">
-    <div class="stat-tile"><div class="label">Solde disponible</div><div class="valeur" id="stat-solde">-</div></div>
-    <div class="stat-tile"><div class="label">Gains du jour</div><div class="valeur" id="stat-jour">-</div></div>
-    <div class="stat-tile"><div class="label">Gains de la semaine</div><div class="valeur" id="stat-semaine">-</div></div>
-    <div class="stat-tile"><div class="label">Gains du mois</div><div class="valeur" id="stat-mois">-</div></div>
+<div class="tile-hero violet mb-1">
+    <div class="entete">
+        <div class="entete-libelle"><span class="icone-rond">💰</span> Solde disponible</div>
+        <span class="statut-pill">Portefeuille</span>
+    </div>
+    <div class="montant" id="stat-solde">-</div>
+    <div class="sous-texte">Retirable via Mobile Money a tout moment</div>
+</div>
+
+<div class="grid grid-3 mb-1">
+    <div class="stat-tile"><div><div class="label">Gains du jour</div><div class="valeur" id="stat-jour">-</div></div><div class="stat-icone icone-vert">📅</div></div>
+    <div class="stat-tile"><div><div class="label">Gains de la semaine</div><div class="valeur" id="stat-semaine">-</div></div><div class="stat-icone icone-orange">📈</div></div>
+    <div class="stat-tile"><div><div class="label">Gains du mois</div><div class="valeur" id="stat-mois">-</div></div><div class="stat-icone icone-vert">🗓️</div></div>
 </div>
 
 <div class="grid grid-2 mb-1 hidden" id="carte-dette">

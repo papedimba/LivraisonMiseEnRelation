@@ -1,54 +1,93 @@
 /* ============================================================================
-   LivraisonCI - Design system app-like, mobile-first, responsive.
-   Palette : violet/indigo (primaire) + emeraude (accent), style epure facon
-   application de livraison moderne.
+   CityHub 225 - Design system app-like, mobile-first, responsive.
+   Palette : indigo/violet (primaire) + emeraude (accent), cartes en degrade
+   et sidebar facon Likuid.com / GeniusPay.
    ============================================================================ */
 
 :root {
-    /* Palette CityHub 225 : orange + noir + vert (Cote d'Ivoire) */
-    --primaire: #f26522;
-    --primaire-fonce: #d8551a;
-    --primaire-clair: #fdece1;
-    --accent: #2e9e4b;
-    --accent-fonce: #26833e;
+    /* Palette CityHub 225 : indigo/violet + emeraude */
+    --primaire: #4f46e5;
+    --primaire-fonce: #4338ca;
+    --primaire-clair: #eef2ff;
+    --accent: #16a34a;
+    --accent-fonce: #15803d;
 
-    --fond: #f6f6f4;
+    --fond: #f3f4f8;
     --carte: #ffffff;
-    --carte-2: #fbfaf8;
-    --texte: #17181a;
-    --texte-doux: #6b6f76;
-    --bordure: #ececea;
+    --carte-2: #f8f9fc;
+    --texte: #171923;
+    --texte-doux: #6b7086;
+    --bordure: #e8e9f1;
 
-    --danger: #e5484d;
-    --succes: #2e9e4b;
-    --attente: #f79009;
-    --info: #f26522;
+    --danger: #ef4444;
+    --succes: #16a34a;
+    --attente: #f59e0b;
+    --info: #4f46e5;
+
+    /* Degrades "carte hero" facon GeniusPay (solde en attente / disponible / total) */
+    --degrade-orange: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+    --degrade-vert: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+    --degrade-bleu: linear-gradient(135deg, #6366f1 0%, #2563eb 100%);
+    --degrade-rouge: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+    --degrade-violet: linear-gradient(135deg, #818cf8 0%, #4f46e5 100%);
 
     --rayon: 18px;
     --rayon-sm: 12px;
     --rayon-pill: 999px;
-    --ombre: 0 6px 24px rgba(28, 27, 51, 0.07);
-    --ombre-forte: 0 12px 32px rgba(28, 27, 51, 0.12);
-    --barre-haut: 60px;
+    --ombre: 0 6px 24px rgba(38, 43, 89, 0.07);
+    --ombre-forte: 0 16px 40px rgba(38, 43, 89, 0.14);
+    --barre-haut: 64px;
     --barre-bas: 64px;
+    --largeur-sidebar: 264px;
 }
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --primaire: #ff7a3c;
-        --primaire-fonce: #f26522;
-        --primaire-clair: #3a2114;
-        --accent: #3cc264;
-        --accent-fonce: #2e9e4b;
-        --fond: #121213;
-        --carte: #1c1c1f;
-        --carte-2: #232327;
-        --texte: #eef0f2;
-        --texte-doux: #9a9ea6;
-        --bordure: #2c2c30;
+        --primaire: #818cf8;
+        --primaire-fonce: #6366f1;
+        --primaire-clair: #24243d;
+        --accent: #34d399;
+        --accent-fonce: #16a34a;
+        --fond: #0f1016;
+        --carte: #191a23;
+        --carte-2: #20212c;
+        --texte: #eef0f5;
+        --texte-doux: #9195a8;
+        --bordure: #2b2d3b;
         --ombre: 0 6px 24px rgba(0, 0, 0, 0.4);
-        --ombre-forte: 0 12px 32px rgba(0, 0, 0, 0.5);
+        --ombre-forte: 0 16px 40px rgba(0, 0, 0, 0.55);
     }
+}
+/* Bascule manuelle (bouton lune/soleil), independante des preferences systeme. */
+:root[data-theme="dark"] {
+    --primaire: #818cf8;
+    --primaire-fonce: #6366f1;
+    --primaire-clair: #24243d;
+    --accent: #34d399;
+    --accent-fonce: #16a34a;
+    --fond: #0f1016;
+    --carte: #191a23;
+    --carte-2: #20212c;
+    --texte: #eef0f5;
+    --texte-doux: #9195a8;
+    --bordure: #2b2d3b;
+    --ombre: 0 6px 24px rgba(0, 0, 0, 0.4);
+    --ombre-forte: 0 16px 40px rgba(0, 0, 0, 0.55);
+}
+:root[data-theme="light"] {
+    --primaire: #4f46e5;
+    --primaire-fonce: #4338ca;
+    --primaire-clair: #eef2ff;
+    --accent: #16a34a;
+    --accent-fonce: #15803d;
+    --fond: #f3f4f8;
+    --carte: #ffffff;
+    --carte-2: #f8f9fc;
+    --texte: #171923;
+    --texte-doux: #6b7086;
+    --bordure: #e8e9f1;
+    --ombre: 0 6px 24px rgba(38, 43, 89, 0.07);
+    --ombre-forte: 0 16px 40px rgba(38, 43, 89, 0.14);
 }
 
 * { box-sizing: border-box; }
@@ -80,53 +119,49 @@ h2 { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
     border-bottom: 1px solid var(--bordure);
     position: sticky;
     top: 0;
-    z-index: 50;
+    z-index: 80;
     height: var(--barre-haut);
     display: flex;
     align-items: center;
 }
 .topbar-inner {
     width: 100%;
-    max-width: 1120px;
     margin: 0 auto;
     padding: 0 1rem;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
+}
+.menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--rayon-sm);
+    border: none;
+    background: var(--fond);
+    color: var(--texte);
+    font-size: 1.15rem;
+    cursor: pointer;
+    flex: 0 0 auto;
 }
 .brand {
     font-weight: 900;
-    font-size: 1.15rem;
+    font-size: 1.1rem;
     color: var(--texte);
     letter-spacing: -0.02em;
     white-space: nowrap;
     display: flex;
     align-items: center;
+    gap: 0.4rem;
 }
-.brand-logo { height: 38px; width: auto; display: block; }
-.topnav {
-    display: flex;
-    gap: 0.35rem;
-    flex: 1;
-    overflow-x: auto;
-    scrollbar-width: none;
-}
-.topnav::-webkit-scrollbar { display: none; }
-.topnav a {
-    color: var(--texte-doux);
-    font-weight: 600;
-    font-size: 0.9rem;
-    padding: 0.4rem 0.7rem;
-    border-radius: var(--rayon-pill);
-    white-space: nowrap;
-}
-.topnav a:hover { background: var(--fond); color: var(--texte); }
-.topnav a.actif { background: var(--primaire-clair); color: var(--primaire); }
+.brand-logo { height: 34px; width: auto; display: block; }
 
 .topbar-user {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.5rem;
     margin-left: auto;
 }
 .user-name {
@@ -142,7 +177,7 @@ h2 { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
     position: relative;
     background: var(--fond);
     border: none;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     cursor: pointer;
     width: 40px;
     height: 40px;
@@ -150,7 +185,9 @@ h2 { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    color: var(--texte-doux);
 }
+.icon-btn:hover { background: var(--primaire-clair); color: var(--primaire); }
 .badge {
     position: absolute;
     top: -2px;
@@ -168,6 +205,92 @@ h2 { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
     font-weight: 700;
 }
 .hidden { display: none !important; }
+
+/* Avatar rond (initiales), degrade primaire - facon Likuid. */
+.avatar {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--rayon-pill);
+    background: var(--degrade-violet);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+.avatar-lg { width: 48px; height: 48px; font-size: 0.95rem; }
+
+/* ---------------------------------------------------------------- Sidebar (desktop) */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--largeur-sidebar);
+    background: var(--carte);
+    border-right: 1px solid var(--bordure);
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    overflow-y: auto;
+}
+.sidebar.ouvert { transform: translateX(0); box-shadow: var(--ombre-forte); }
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1.15rem 1.15rem 0.9rem;
+    font-weight: 900;
+    font-size: 1.1rem;
+    color: var(--texte);
+}
+.sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.85rem 1.15rem;
+    border-top: 1px solid var(--bordure);
+    border-bottom: 1px solid var(--bordure);
+}
+.sidebar-user .infos { overflow: hidden; }
+.sidebar-user .nom { font-weight: 700; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-user .role { color: var(--texte-doux); font-size: 0.76rem; text-transform: capitalize; }
+.sidebar-nav { padding: 0.75rem; display: flex; flex-direction: column; gap: 0.15rem; flex: 1; }
+.sidebar-nav a {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.65rem 0.8rem;
+    border-radius: var(--rayon-sm);
+    color: var(--texte-doux);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+.sidebar-nav a .ic { font-size: 1.05rem; width: 1.3rem; text-align: center; }
+.sidebar-nav a:hover { background: var(--fond); color: var(--texte); }
+.sidebar-nav a.actif { background: var(--primaire-clair); color: var(--primaire); }
+.sidebar-foot { padding: 0.9rem 1.15rem 1.15rem; border-top: 1px solid var(--bordure); }
+.sidebar-overlay {
+    position: fixed; inset: 0; z-index: 85;
+    background: rgba(15, 16, 22, 0.45);
+    display: none;
+}
+.sidebar-overlay.ouvert { display: block; }
+
+.contenu-avec-sidebar { transition: none; }
+
+@media (min-width: 901px) {
+    .sidebar { transform: translateX(0); }
+    .sidebar-overlay { display: none !important; }
+    .menu-toggle { display: none; }
+    .contenu-avec-sidebar { margin-left: var(--largeur-sidebar); }
+}
 
 /* --------------------------------------------------------- Barre nav mobile */
 .bottomnav {
@@ -212,7 +335,7 @@ h2 { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
     border: 1px solid var(--bordure);
     border-radius: var(--rayon);
     box-shadow: var(--ombre-forte);
-    z-index: 70;
+    z-index: 95;
     padding: 0.4rem;
 }
 .notif-item {
@@ -227,13 +350,14 @@ h2 { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
 
 /* ------------------------------------------------------------- Contenu page */
 .page-content {
-    max-width: 1120px;
+    max-width: 1180px;
     margin: 0 auto;
     padding: 1.25rem 1rem calc(1.5rem + var(--barre-bas));
     min-height: 60vh;
 }
-@media (min-width: 769px) {
-    .page-content { padding-bottom: 2.5rem; }
+@media (min-width: 901px) {
+    .page-content { padding: 1.75rem 2rem 2.5rem; max-width: 1320px; }
+    .page-content.contenu-avec-sidebar { margin-left: var(--largeur-sidebar); margin-right: 0; max-width: none; }
 }
 
 /* -------------------------------------------------------------------- Cartes */
@@ -262,14 +386,75 @@ a.card:hover { transform: translateY(-2px); box-shadow: var(--ombre-forte); }
 }
 
 /* --------------------------------------------------------------- Stat tiles */
+/* Carte stat facon Likuid : bloc icone pastel colle au bord droit. */
 .stat-tile {
+    position: relative;
     background: var(--carte);
     border: 1px solid var(--bordure);
     border-radius: var(--rayon-sm);
     padding: 1rem;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
 }
 .stat-tile .valeur { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
 .stat-tile .label { color: var(--texte-doux); font-size: 0.82rem; margin-top: 2px; }
+.stat-tile .stat-icone {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--rayon-sm);
+    background: var(--primaire-clair);
+    color: var(--primaire);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+}
+.stat-icone.icone-vert { background: rgba(22, 163, 74, 0.14); color: var(--succes); }
+.stat-icone.icone-orange { background: rgba(245, 158, 11, 0.14); color: var(--attente); }
+.stat-icone.icone-rouge { background: rgba(239, 68, 68, 0.14); color: var(--danger); }
+
+/* Carte "hero" en degrade (solde, gains...) facon GeniusPay. */
+.tile-hero {
+    position: relative;
+    border-radius: var(--rayon);
+    padding: 1.25rem 1.35rem;
+    color: #fff;
+    overflow: hidden;
+    box-shadow: var(--ombre);
+}
+.tile-hero::after {
+    content: "";
+    position: absolute;
+    top: -40%; right: -20%;
+    width: 70%; height: 140%;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+}
+.tile-hero.orange { background: var(--degrade-orange); }
+.tile-hero.vert { background: var(--degrade-vert); }
+.tile-hero.bleu { background: var(--degrade-bleu); }
+.tile-hero.violet { background: var(--degrade-violet); }
+.tile-hero .entete { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; position: relative; z-index: 1; }
+.tile-hero .entete-libelle { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; }
+.tile-hero .icone-rond {
+    width: 34px; height: 34px; border-radius: var(--rayon-pill);
+    background: rgba(255, 255, 255, 0.22);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+}
+.tile-hero .statut-pill {
+    background: rgba(255, 255, 255, 0.22);
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--rayon-pill);
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+.tile-hero .montant { font-size: 2rem; font-weight: 900; letter-spacing: -0.02em; margin: 0.7rem 0 0.15rem; position: relative; z-index: 1; }
+.tile-hero .montant .unite { font-size: 1rem; font-weight: 700; margin-left: 0.3rem; }
+.tile-hero .sous-texte { color: rgba(255, 255, 255, 0.85); font-size: 0.85rem; position: relative; z-index: 1; }
 
 /* ------------------------------------------------------------------- Boutons */
 .btn {
@@ -288,15 +473,16 @@ a.card:hover { transform: translateY(-2px); box-shadow: var(--ombre-forte); }
     cursor: pointer;
     text-decoration: none;
     line-height: 1;
-    transition: background 0.12s ease, transform 0.08s ease;
+    transition: background 0.12s ease, transform 0.08s ease, box-shadow 0.12s ease;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.28);
 }
 .btn:hover { background: var(--primaire-fonce); }
 .btn:active { transform: scale(0.98); }
-.btn-secondaire { background: var(--accent); }
+.btn-secondaire { background: var(--accent); box-shadow: 0 4px 14px rgba(22, 163, 74, 0.28); }
 .btn-secondaire:hover { background: var(--accent-fonce); }
-.btn-ghost { background: transparent; color: var(--texte); border: 1.5px solid var(--bordure); }
+.btn-ghost { background: transparent; color: var(--texte); border: 1.5px solid var(--bordure); box-shadow: none; }
 .btn-ghost:hover { background: var(--fond); }
-.btn-danger { background: var(--danger); }
+.btn-danger { background: var(--danger); box-shadow: 0 4px 14px rgba(239, 68, 68, 0.28); }
 .btn-danger:hover { filter: brightness(0.95); }
 .btn-sm { padding: 0.45rem 0.8rem; min-height: 36px; font-size: 0.82rem; }
 .btn-block { width: 100%; }
@@ -332,9 +518,9 @@ input[type="checkbox"], input[type="file"] { width: auto; }
     font-size: 0.74rem;
     font-weight: 700;
 }
-.tag-attente { background: rgba(247, 144, 9, 0.14); color: var(--attente); }
-.tag-succes { background: rgba(18, 183, 106, 0.14); color: var(--succes); }
-.tag-danger { background: rgba(255, 77, 94, 0.14); color: var(--danger); }
+.tag-attente { background: rgba(245, 158, 11, 0.14); color: var(--attente); }
+.tag-succes { background: rgba(22, 163, 74, 0.14); color: var(--succes); }
+.tag-danger { background: rgba(239, 68, 68, 0.14); color: var(--danger); }
 .tag-info { background: var(--primaire-clair); color: var(--primaire); }
 
 /* ---------------------------------------------------------------- Graphiques */
@@ -363,7 +549,7 @@ input[type="checkbox"], input[type="file"] { width: auto; }
 /* ------------------------------------------------------------------- Modale */
 .modal-overlay {
     position: fixed; inset: 0; z-index: 100;
-    background: rgba(0, 0, 0, 0.45);
+    background: rgba(15, 16, 22, 0.5);
     display: flex; align-items: flex-start; justify-content: center;
     padding: 1.5rem 1rem; overflow-y: auto;
 }
@@ -388,16 +574,34 @@ th { color: var(--texte-doux); font-weight: 700; font-size: 0.72rem; text-transf
 tbody tr:last-child td { border-bottom: none; }
 
 /* ------------------------------------------------------------------- Alertes */
+/* Bandeau facon Likuid : icone pastel + titre + sous-texte. */
 .alert {
-    padding: 0.8rem 1rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    padding: 0.85rem 1rem;
     border-radius: var(--rayon-sm);
     margin-bottom: 1rem;
     font-size: 0.9rem;
     font-weight: 500;
 }
-.alert-erreur { background: rgba(255, 77, 94, 0.12); color: var(--danger); }
-.alert-succes { background: rgba(18, 183, 106, 0.12); color: var(--succes); }
+.alert::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 34px; height: 34px;
+    border-radius: var(--rayon-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    margin-top: 1px;
+}
+.alert-erreur { background: rgba(239, 68, 68, 0.1); color: #b91c1c; }
+.alert-erreur::before { content: "\2715"; background-color: rgba(239, 68, 68, 0.16); }
+.alert-succes { background: rgba(22, 163, 74, 0.1); color: #15803d; }
+.alert-succes::before { content: "\2713"; background-color: rgba(22, 163, 74, 0.16); }
 .alert-info { background: var(--primaire-clair); color: var(--primaire-fonce); }
+.alert-info::before { content: "i"; font-style: italic; font-weight: 800; background-color: rgba(79, 70, 229, 0.14); }
 
 /* ---------------------------------------------------------------------- Auth */
 .auth-wrap { max-width: 440px; margin: 1.5rem auto; padding: 0 1rem; }
@@ -494,15 +698,13 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* ------------------------------------------------------------------- Footer */
 .footer { text-align: center; color: var(--texte-doux); font-size: 0.8rem; padding: 1.5rem 1rem calc(1.5rem + var(--barre-bas)); }
-@media (min-width: 769px) { .footer { padding-bottom: 1.5rem; } }
+@media (min-width: 901px) { .footer { padding-bottom: 1.5rem; } }
 
-/* ============================================================ RESPONSIVE <=768 */
-@media (max-width: 768px) {
-    .topnav { display: none; }          /* nav principale -> barre du bas */
+/* ============================================================ RESPONSIVE <=900 */
+@media (max-width: 900px) {
     .bottomnav { display: flex; }
     .user-name { display: none; }        /* gagner de la place sur mobile */
     h1 { font-size: 1.35rem; }
-    .page-content { padding-left: 0.85rem; padding-right: 0.85rem; }
     .hero { padding-top: 1.5rem; }
     .hero-actions .btn { width: 100%; }
 }
