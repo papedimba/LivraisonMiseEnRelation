@@ -15,6 +15,12 @@ require __DIR__ . '/../includes/header.php';
     <button type="button" class="btn btn-sm btn-ghost mt-1" id="btn-test-ecriture">Ecrire une ligne de test</button>
 </div>
 
+<div class="card mb-1">
+    <h2 style="margin-top:0;">Deploiement (fichiers a jour ?)</h2>
+    <p class="text-muted">Sur hebergement mutualise, un cache d'opcode (OPcache) ou une synchronisation partielle peut laisser un fichier a une ancienne version meme apres un deploiement "complet". Verifie directement si le code recent est bien present, fichier par fichier.</p>
+    <div id="deploiement"><p class="text-muted">Chargement...</p></div>
+</div>
+
 <div class="card">
     <div class="flex-between">
         <h2 style="margin-top:0;">Dernieres lignes (storage/logs/app.log)</h2>
@@ -28,10 +34,37 @@ function libelleBool(val) {
     return val ? '<span class="tag tag-succes">Oui</span>' : '<span class="tag tag-danger">Non</span>';
 }
 
+function rendreDeploiement(deploiement) {
+    const zone = document.getElementById('deploiement');
+    if (!deploiement || !deploiement.length) { zone.innerHTML = '<p class="text-muted">Indisponible.</p>'; return; }
+
+    let toutAJour = true;
+    const lignes = deploiement.map(f => {
+        const verifsHtml = f.verifications.map(v => {
+            if (!v.present) toutAJour = false;
+            return `<div>${libelleBool(v.present)} ${escapeHtml(v.libelle)}</div>`;
+        }).join('');
+        return `<tr>
+            <td><code>${escapeHtml(f.fichier)}</code>${f.modifie_le ? `<br><span class="text-muted" style="font-size:0.78rem;">modifie le ${escapeHtml(f.modifie_le)}</span>` : ''}</td>
+            <td>${f.existe ? verifsHtml : '<span class="tag tag-danger">Fichier introuvable</span>'}</td>
+        </tr>`;
+    }).join('');
+
+    zone.innerHTML = `
+        <table><tbody>${lignes}</tbody></table>
+        ${!toutAJour ? `<div class="alert alert-erreur mt-1">
+            Au moins un fichier n'a pas la derniere version du code (voir "Non" ci-dessus). Re-uploadez ce
+            fichier specifiquement, puis si possible redemarrez PHP / videz le cache OPcache depuis le
+            panneau de votre hebergeur (ex. cPanel : Selecteur PHP).
+        </div>` : `<div class="alert alert-succes mt-1">Tous les fichiers verifies sont a jour.</div>`}
+    `;
+}
+
 async function chargerJournal() {
     try {
         const res = await Api.get('/api/admin/logs_view.php');
-        const { infos, lignes } = res.data;
+        const { infos, lignes, deploiement } = res.data;
+        rendreDeploiement(deploiement);
 
         const cheminActifDiffere = infos.php_error_log_actif && infos.log_path
             && !infos.php_error_log_actif.includes('app.log');

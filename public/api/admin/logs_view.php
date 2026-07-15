@@ -75,9 +75,46 @@ try {
     $contenu = (defined('LOG_PATH') && is_file(LOG_PATH)) ? lire_fin_fichier(LOG_PATH, 200000) : '';
     $lignes = $contenu !== '' ? array_slice(array_filter(explode("\n", $contenu)), -300) : [];
 
+    // Diagnostic de deploiement : sur hebergement mutualise, un cache d'opcode
+    // (OPcache) ou une synchronisation partielle peut laisser certains fichiers
+    // a une version anterieure meme apres un deploiement "complet". On verifie
+    // directement, fichier par fichier, la presence d'un extrait de code
+    // recent - bien plus fiable qu'une date de modification (que certains
+    // clients FTP ne mettent pas a jour a l'upload).
+    $racine = dirname(__DIR__, 3);
+    $marqueursFichiers = [
+        'config/config.php' => ['function app_log' => 'journal applicatif (app_log)'],
+        'includes/functions.php' => ['function app_log' => 'filet de secours du journal (app_log)'],
+        'includes/PaymentGateway.php' => [
+            'formaterNumeroE164' => 'normalisation du numero (format E.164)',
+            'GeniusPay initierPaiement echec' => 'journalisation des echecs GeniusPay',
+        ],
+        'public/api/admin/logs_view.php' => ['deploiement' => 'ce diagnostic de deploiement lui-meme'],
+    ];
+    $deploiement = [];
+    foreach ($marqueursFichiers as $cheminRelatif => $marqueurs) {
+        $cheminAbsolu = $racine . '/' . $cheminRelatif;
+        $existe = is_file($cheminAbsolu);
+        $contenuFichier = $existe ? (string) @file_get_contents($cheminAbsolu) : '';
+        $verifs = [];
+        foreach ($marqueurs as $marqueur => $libelle) {
+            $verifs[] = [
+                'libelle' => $libelle,
+                'present' => $existe && str_contains($contenuFichier, $marqueur),
+            ];
+        }
+        $deploiement[] = [
+            'fichier' => $cheminRelatif,
+            'existe' => $existe,
+            'modifie_le' => $existe ? date('Y-m-d H:i:s', (int) filemtime($cheminAbsolu)) : null,
+            'verifications' => $verifs,
+        ];
+    }
+
     Response::success([
         'infos' => $infos,
         'lignes' => array_values($lignes),
+        'deploiement' => $deploiement,
     ]);
 } catch (Throwable $e) {
     // Reponse JSON autonome (ne depend pas de Response::error(), qui pourrait
