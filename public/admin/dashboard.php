@@ -63,7 +63,14 @@ require __DIR__ . '/../includes/header.php';
 
 <div class="grid grid-3 mb-1">
     <div class="stat-tile"><div><div class="label">Reclamations ouvertes</div><div class="valeur" id="stat-reclamations">-</div></div><div class="stat-icone icone-rouge">⚠️</div></div>
-    <div class="stat-tile"><div><div class="label">Retraits en attente</div><div class="valeur" id="stat-retraits">-</div></div><div class="stat-icone icone-orange">💳</div></div>
+    <div class="tile-hero orange">
+        <div class="entete">
+            <div class="entete-libelle"><span class="icone-rond">💳</span> Retraits en attente</div>
+            <span class="statut-pill" id="stat-retraits-nb">-</span>
+        </div>
+        <div class="montant" id="stat-retraits">-</div>
+        <div class="sous-texte">A valider aupres des livreurs</div>
+    </div>
     <div class="stat-tile"><div><div class="label">Utilisateurs actifs</div><div class="valeur" id="stat-users">-</div></div><div class="stat-icone icone-vert">👥</div></div>
 </div>
 
@@ -241,7 +248,8 @@ async function chargerOperationnel() {
     const res = await Api.get('/api/admin/dashboard.php');
     const d = res.data;
     document.getElementById('stat-reclamations').textContent = d.reclamations_ouvertes;
-    document.getElementById('stat-retraits').textContent = `${d.retraits_en_attente.nombre} (${formatMontant(d.retraits_en_attente.montant)})`;
+    document.getElementById('stat-retraits').textContent = formatMontant(d.retraits_en_attente.montant);
+    document.getElementById('stat-retraits-nb').textContent = d.retraits_en_attente.nombre + ' demande(s)';
     const totalActifs = d.utilisateurs_par_role.filter(u => u.statut === 'actif').reduce((s, u) => s + Number(u.nb), 0);
     document.getElementById('stat-users').textContent = totalActifs;
     document.getElementById('tbody-users').innerHTML = d.utilisateurs_par_role.map(u => `

@@ -18,10 +18,10 @@ require __DIR__ . '/../includes/header.php';
 </div>
 
 <div class="grid grid-4 mb-1">
-    <div class="stat-tile"><div class="valeur" id="c-total">0</div><div class="label">Actifs</div></div>
-    <div class="stat-tile"><div class="valeur" id="c-en_route" style="color:var(--primaire);">0</div><div class="label">🛵 En route</div></div>
-    <div class="stat-tile"><div class="valeur" id="c-libre" style="color:var(--accent);">0</div><div class="label">🟢 Libres</div></div>
-    <div class="stat-tile"><div class="valeur" id="c-pause" style="color:var(--attente);">0</div><div class="label">⏸️ En pause</div></div>
+    <div class="stat-tile"><div><div class="label">Actifs</div><div class="valeur" id="c-total">0</div></div><div class="stat-icone">👥</div></div>
+    <div class="stat-tile"><div><div class="label">En route</div><div class="valeur" id="c-en_route">0</div></div><div class="stat-icone">🛵</div></div>
+    <div class="stat-tile"><div><div class="label">Libres</div><div class="valeur" id="c-libre">0</div></div><div class="stat-icone icone-vert">🟢</div></div>
+    <div class="stat-tile"><div><div class="label">En pause</div><div class="valeur" id="c-pause">0</div></div><div class="stat-icone icone-orange">⏸️</div></div>
 </div>
 
 <div class="grid grid-2">

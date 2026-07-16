@@ -8,10 +8,16 @@ require __DIR__ . '/../includes/header.php';
 <h1>Statistiques de ventes</h1>
 
 <div class="grid grid-4 mb-1">
-    <div class="stat-tile"><div class="label">Total commandes</div><div class="valeur" id="stat-total">-</div></div>
-    <div class="stat-tile"><div class="label">Livrees</div><div class="valeur" id="stat-livrees">-</div></div>
-    <div class="stat-tile"><div class="label">Annulees</div><div class="valeur" id="stat-annulees">-</div></div>
-    <div class="stat-tile"><div class="label">Chiffre d'affaires</div><div class="valeur" id="stat-ca">-</div></div>
+    <div class="tile-hero vert">
+        <div class="entete">
+            <div class="entete-libelle"><span class="icone-rond">💵</span> Chiffre d'affaires</div>
+        </div>
+        <div class="montant" id="stat-ca">-</div>
+        <div class="sous-texte">Toutes commandes livrees</div>
+    </div>
+    <div class="stat-tile"><div><div class="label">Total commandes</div><div class="valeur" id="stat-total">-</div></div><div class="stat-icone icone-vert">🧾</div></div>
+    <div class="stat-tile"><div><div class="label">Livrees</div><div class="valeur" id="stat-livrees">-</div></div><div class="stat-icone icone-vert">📦</div></div>
+    <div class="stat-tile"><div><div class="label">Annulees</div><div class="valeur" id="stat-annulees">-</div></div><div class="stat-icone icone-rouge">🚫</div></div>
 </div>
 
 <div class="card">

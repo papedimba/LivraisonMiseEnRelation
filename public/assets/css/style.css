@@ -25,7 +25,7 @@
     --info: #4f46e5;
 
     /* Degrades "carte hero" facon GeniusPay (solde en attente / disponible / total) */
-    --degrade-orange: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+    --degrade-orange: linear-gradient(135deg, #fbbf5c 0%, #f0790e 100%);
     --degrade-vert: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
     --degrade-bleu: linear-gradient(135deg, #6366f1 0%, #2563eb 100%);
     --degrade-rouge: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
