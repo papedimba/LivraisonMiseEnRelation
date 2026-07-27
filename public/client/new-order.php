@@ -91,6 +91,11 @@ require __DIR__ . '/../includes/header.php';
             <div class="valeur" id="estim-montant">-</div>
         </div>
         <div class="form-group">
+            <label for="prix_propose">Votre offre (FCFA)</label>
+            <input type="number" id="prix_propose" min="1">
+            <p class="text-muted" style="font-size:0.82rem;margin-top:0.25rem;">Vous pouvez proposer moins que l'estimation : le livreur pourra l'accepter ou vous faire une contre-proposition (marchandage).</p>
+        </div>
+        <div class="form-group">
             <label for="code_promo">Code promo (optionnel)</label>
             <div class="flex">
                 <input type="text" id="code_promo" placeholder="Ex: BIENVENUE10" style="flex:1;">
@@ -107,6 +112,8 @@ let map, markerDepart, markerArrivee;
 let coords = { depart: null, arrivee: null };
 let typesLivraison = [];
 let cibleActive = 'depart'; // quel point un clic sur la carte place/modifie
+let prixProposeModifie = false; // le client a-t-il vraiment touche au champ "Votre offre" ?
+document.getElementById('prix_propose').addEventListener('input', () => { prixProposeModifie = true; });
 
 function definirCible(cible) {
     cibleActive = cible;
@@ -240,6 +247,11 @@ async function estimer() {
         });
         document.getElementById('estim-distance').textContent = res.data.distance_km + ' km';
         document.getElementById('estim-montant').textContent = formatMontant(res.data.montant_estime);
+        // Ne pre-remplit "Votre offre" que tant que le client n'y a pas touche
+        // lui-meme (sinon un changement de trajet effacerait son offre en cours de saisie).
+        if (!prixProposeModifie) {
+            document.getElementById('prix_propose').value = Math.round(res.data.montant_estime);
+        }
         btn.disabled = false;
         btn.textContent = 'Confirmer la commande';
         // Information de tarification dynamique (majoration eventuelle).
@@ -308,6 +320,7 @@ document.getElementById('btn-commander').addEventListener('click', async () => {
         mode_paiement: document.getElementById('mode_paiement').value,
         numero_paiement: document.getElementById('numero_paiement').value.trim(),
         code_promo: document.getElementById('code_promo').value.trim(),
+        prix_propose: prixProposeModifie ? document.getElementById('prix_propose').value : '',
     };
 
     try {

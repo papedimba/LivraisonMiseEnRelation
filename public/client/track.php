@@ -18,6 +18,7 @@ require __DIR__ . '/../includes/header.php';
     <div class="card">
         <div id="details">Chargement...</div>
         <div id="actions" class="mt-1"></div>
+        <div id="negociations" class="mt-1 hidden"></div>
     </div>
     <div class="card">
         <h2>Position du livreur</h2>
@@ -97,8 +98,14 @@ function initMap() {
     }).addTo(map);
 }
 
+let commandeStatut = null;
+
 function renderDetails(c) {
     commandeId = c.id;
+    commandeStatut = c.statut;
+    if (c.statut !== 'en_attente') {
+        document.getElementById('negociations').classList.add('hidden');
+    }
     document.getElementById('details').innerHTML = `
         <p><strong>Reference :</strong> ${escapeHtml(c.reference)}</p>
         <p><strong>Type :</strong> ${escapeHtml(c.type_nom)}</p>
@@ -158,6 +165,8 @@ function renderDetails(c) {
         } catch (e) { /* la carte est secondaire */ }
     }
 
+    chargerNegociations(); // le statut vient d'etre mis a jour : reevalue tout de suite
+
     document.getElementById('btn-annuler')?.addEventListener('click', async () => {
         if (!confirm('Confirmer l\'annulation de cette commande ?')) return;
         try {
@@ -215,6 +224,70 @@ function demarrerSSE() {
     };
 }
 
+// --- Propositions de prix des livreurs (marchandage, courses especes) ------
+async function chargerNegociations() {
+    const zone = document.getElementById('negociations');
+    if (commandeStatut !== 'en_attente') {
+        zone.classList.add('hidden');
+        return;
+    }
+    try {
+        const res = await Api.get('/api/client/negotiations_list.php?reference=' + encodeURIComponent(reference));
+        const liste = res.data.negociations;
+        if (!liste.length) {
+            zone.classList.add('hidden');
+            return;
+        }
+        zone.classList.remove('hidden');
+        zone.innerHTML = `<h2 style="margin-top:0;">🤝 Propositions des livreurs</h2>` + liste.map(n => {
+            const attenteLivreur = n.propose_par === 'client';
+            const note = n.note_moyenne ? ` · ⭐ ${Number(n.note_moyenne).toFixed(1)}` : '';
+            return `<div class="mb-1" style="border-top:1px solid var(--couleur-bordure);padding-top:0.6rem;">
+                <p><strong>${escapeHtml(n.prenom)} ${escapeHtml(n.nom)}</strong>${note}</p>
+                <p>${attenteLivreur ? 'Votre contre-offre' : 'Propose'} : <strong>${formatMontant(n.montant_propose)}</strong></p>
+                ${attenteLivreur
+                    ? '<p class="text-muted">En attente de la reponse du livreur...</p>'
+                    : `<div class="flex">
+                        <button class="btn btn-sm" data-lid="${n.livreur_id}" data-action="accepter">Accepter</button>
+                        <button class="btn btn-sm btn-ghost" data-lid="${n.livreur_id}" data-montant="${n.montant_propose}" data-action="contre">Contre-proposer</button>
+                        <button class="btn btn-sm btn-ghost" data-lid="${n.livreur_id}" data-action="refuser">Refuser</button>
+                    </div>`}
+            </div>`;
+        }).join('');
+
+        zone.querySelectorAll('button[data-action="accepter"]').forEach(btn => {
+            btn.addEventListener('click', () => repondreNegociation(btn.dataset.lid, 'accepter'));
+        });
+        zone.querySelectorAll('button[data-action="refuser"]').forEach(btn => {
+            btn.addEventListener('click', () => repondreNegociation(btn.dataset.lid, 'refuser'));
+        });
+        zone.querySelectorAll('button[data-action="contre"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const saisie = prompt(`Votre contre-offre (FCFA), au lieu de ${Math.round(btn.dataset.montant)} :`, btn.dataset.montant);
+                if (saisie === null) { return; }
+                const montant = Number(saisie);
+                if (!montant || montant <= 0) { alert('Montant invalide.'); return; }
+                repondreNegociation(btn.dataset.lid, 'proposer', montant);
+            });
+        });
+    } catch (err) {
+        zone.classList.add('hidden');
+    }
+}
+
+async function repondreNegociation(livreurId, decision, montant) {
+    try {
+        await Api.post('/api/client/negociation.php', {
+            commande_id: commandeId, livreur_id: livreurId, decision: decision, montant: montant || 0,
+        });
+        chargerNegociations();
+        charger();
+    } catch (err) {
+        alert(err.message);
+        chargerNegociations();
+    }
+}
+
 document.getElementById('btn-envoyer-note').addEventListener('click', async () => {
     try {
         await Api.post('/api/client/rate.php', {
@@ -233,5 +306,7 @@ document.getElementById('btn-envoyer-note').addEventListener('click', async () =
 try { initMap(); } catch (e) { /* carte indisponible, on continue */ }
 charger();       // premier affichage immediat (reference, code de livraison...)
 demarrerSSE();   // puis mises a jour poussees par le serveur (SSE)
+chargerNegociations();
+setInterval(chargerNegociations, 4000); // pas de canal SSE dedie : polling simple
 </script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>

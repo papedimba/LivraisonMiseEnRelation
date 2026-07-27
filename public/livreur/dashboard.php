@@ -27,6 +27,8 @@ require __DIR__ . '/../includes/header.php';
 
 <div id="offre-dispatch" class="card hidden mb-1" style="border:2px solid var(--couleur-primaire);"></div>
 
+<div id="mes-negociations" class="card hidden mb-1"></div>
+
 <div id="course-active" class="card hidden mb-1"></div>
 
 <div id="chat-course" class="card hidden mb-1"></div>
@@ -223,10 +225,13 @@ async function chargerCommandes() {
                 <td>${escapeHtml(c.adresse_arrivee)}</td>
                 <td>${c.distance_km} km</td>
                 <td>${formatMontant(c.montant_estime)}</td>
-                <td><button class="btn btn-sm" data-id="${c.id}">Accepter</button></td>
+                <td>
+                    <button class="btn btn-sm" data-id="${c.id}" data-action="accepter">Accepter</button>
+                    ${c.mode_paiement === 'especes' ? `<button class="btn btn-sm btn-ghost" data-id="${c.id}" data-montant="${c.montant_estime}" data-action="proposer">Proposer un prix</button>` : ''}
+                </td>
             </tr>
         `).join('');
-        tbody.querySelectorAll('button[data-id]').forEach(btn => {
+        tbody.querySelectorAll('button[data-action="accepter"]').forEach(btn => {
             btn.addEventListener('click', async () => {
                 try {
                     await Api.post('/api/livreur/orders_accept.php', { commande_id: btn.dataset.id });
@@ -237,8 +242,29 @@ async function chargerCommandes() {
                 }
             });
         });
+        tbody.querySelectorAll('button[data-action="proposer"]').forEach(btn => {
+            btn.addEventListener('click', () => proposerPrixCommande(btn.dataset.id, btn.dataset.montant));
+        });
     } catch (err) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-muted">${escapeHtml(err.message)}</td></tr>`;
+    }
+}
+
+// --- Marchandage : proposer un prix sur une commande (courses especes) -----
+async function proposerPrixCommande(commandeId, montantActuel) {
+    const saisie = prompt(`Montant que vous proposez (FCFA), au lieu de ${Math.round(montantActuel)} :`, montantActuel);
+    if (saisie === null) { return; }
+    const montant = Number(saisie);
+    if (!montant || montant <= 0) {
+        alert('Montant invalide.');
+        return;
+    }
+    try {
+        await Api.post('/api/livreur/negociation.php', { commande_id: commandeId, decision: 'proposer', montant: montant });
+        chargerNegociations();
+        alertZone.innerHTML = '<div class="alert alert-succes">Proposition envoyee au client.</div>';
+    } catch (err) {
+        alertZone.innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
     }
 }
 
@@ -332,10 +358,12 @@ async function chargerOffre() {
             <div class="flex">
                 <button id="btn-accepter-offre" class="btn">Accepter</button>
                 <button id="btn-refuser-offre" class="btn btn-ghost">Refuser</button>
+                ${o.mode_paiement === 'especes' ? `<button id="btn-proposer-offre" class="btn btn-ghost">Proposer un prix</button>` : ''}
             </div>
         `;
         document.getElementById('btn-accepter-offre').addEventListener('click', () => repondreOffre('accepter'));
         document.getElementById('btn-refuser-offre').addEventListener('click', () => repondreOffre('refuser'));
+        document.getElementById('btn-proposer-offre')?.addEventListener('click', () => proposerPrixCommande(o.commande_id, o.montant_estime));
     } catch (err) {
         zone.classList.add('hidden');
     }
@@ -355,12 +383,65 @@ async function repondreOffre(decision) {
     }
 }
 
+// --- Mes negociations en cours (toutes commandes, courses especes) ---------
+async function chargerNegociations() {
+    const zone = document.getElementById('mes-negociations');
+    try {
+        const res = await Api.get('/api/livreur/negotiations_list.php');
+        const liste = res.data.negociations;
+        if (!liste.length) {
+            zone.classList.add('hidden');
+            return;
+        }
+        zone.classList.remove('hidden');
+        zone.innerHTML = `<h2 style="margin-top:0;">🤝 Mes negociations en cours</h2>` + liste.map(n => {
+            const attenteClient = n.propose_par === 'livreur';
+            return `<div class="mb-1" style="border-top:1px solid var(--couleur-bordure);padding-top:0.6rem;">
+                <p><strong>${escapeHtml(n.reference)}</strong> &middot; ${escapeHtml(n.adresse_depart)} &rarr; ${escapeHtml(n.adresse_arrivee)}</p>
+                <p>Prix initial : ${formatMontant(n.montant_initial)} &middot; ${attenteClient ? 'Votre offre' : 'Offre du client'} : <strong>${formatMontant(n.montant_propose)}</strong></p>
+                ${attenteClient
+                    ? '<p class="text-muted">En attente de la reponse du client...</p>'
+                    : `<div class="flex">
+                        <button class="btn btn-sm" data-cid="${n.commande_id}" data-action="accepter">Accepter ${formatMontant(n.montant_propose)}</button>
+                        <button class="btn btn-sm btn-ghost" data-cid="${n.commande_id}" data-montant="${n.montant_propose}" data-action="contre">Proposer un autre prix</button>
+                        <button class="btn btn-sm btn-ghost" data-cid="${n.commande_id}" data-action="refuser">Refuser</button>
+                    </div>`}
+            </div>`;
+        }).join('');
+
+        zone.querySelectorAll('button[data-action="accepter"]').forEach(btn => {
+            btn.addEventListener('click', () => repondreNegociation(btn.dataset.cid, 'accepter'));
+        });
+        zone.querySelectorAll('button[data-action="refuser"]').forEach(btn => {
+            btn.addEventListener('click', () => repondreNegociation(btn.dataset.cid, 'refuser'));
+        });
+        zone.querySelectorAll('button[data-action="contre"]').forEach(btn => {
+            btn.addEventListener('click', () => proposerPrixCommande(btn.dataset.cid, btn.dataset.montant));
+        });
+    } catch (err) {
+        zone.classList.add('hidden');
+    }
+}
+
+async function repondreNegociation(commandeId, decision) {
+    try {
+        await Api.post('/api/livreur/negociation.php', { commande_id: commandeId, decision: decision });
+        chargerNegociations();
+        chargerCourseActive();
+        chargerCommandes();
+    } catch (err) {
+        alertZone.innerHTML = `<div class="alert alert-erreur">${escapeHtml(err.message)}</div>`;
+        chargerNegociations();
+    }
+}
+
 chargerDisponibilite();
 chargerOffre();
+chargerNegociations();
 chargerCourseActive();
 chargerCommandes();
 chargerNotationClient();
-setInterval(() => { chargerOffre(); chargerCourseActive(); chargerCommandes(); chargerNotationClient(); }, 5000);
+setInterval(() => { chargerOffre(); chargerNegociations(); chargerCourseActive(); chargerCommandes(); chargerNotationClient(); }, 5000);
 // Le bandeau #notif-statut (activer/bloquees/actives) est rendu par app.js.
 </script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>

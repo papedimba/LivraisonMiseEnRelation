@@ -122,6 +122,17 @@ try {
 
 $montantTotal = max(0, $montantBrut - $reduction);
 
+// Le client peut proposer son propre prix plutot que l'estimation calculee
+// (marchandage) : borne a 50% du calcule au minimum, pour eviter les erreurs
+// de saisie, sans plafond (rien n'empeche d'offrir plus).
+$prixPropose = (float) input($body, 'prix_propose', 0);
+if ($prixPropose > 0) {
+    if ($prixPropose < $montantTotal * 0.5) {
+        Response::error('Le prix propose est trop eloigne de l\'estimation (' . round($montantTotal * 0.5) . ' FCFA minimum).', 422);
+    }
+    $montantTotal = $prixPropose;
+}
+
 $stmt = $db->prepare("SELECT valeur FROM parametres WHERE cle = 'commission_taux_defaut'");
 $stmt->execute();
 $commissionTaux = (float) ($stmt->fetch()['valeur'] ?? 15);

@@ -291,6 +291,83 @@ function tests_api(string $base): void
     t_eq(200, $r['code'], 'acceptation de l\'offre de dispatch');
     t_eq($cmdDispatch, $r['body']['data']['commande_id'] ?? -1, 'commande attribuee via le dispatch');
 
+    // -- Marchandage de prix (courses especes) ----------------------------------
+    t_section('Marchandage de prix');
+    $livreur2 = new TestHttp($base);
+    $emailLivreur2 = "livreur2{$suffix}@ex.com";
+    $r = $livreur2->post('/api/auth/register.php', [
+        'role' => 'livreur', 'nom' => 'Test', 'prenom' => 'Livreur2',
+        'email' => $emailLivreur2, 'telephone' => "07{$suffix}55", 'password' => 'MotDePasse1', 'type_vehicule' => 'moto',
+    ]);
+    $livreur2Id = $r['body']['data']['user_id'] ?? 0;
+    $admin->post('/api/admin/livreurs_validate.php', ['user_id' => $livreur2Id, 'decision' => 'valide']);
+    $livreur2->post('/api/auth/login.php', ['email' => $emailLivreur2, 'password' => 'MotDePasse1']);
+    $livreur2->post('/api/livreur/toggle_availability.php', ['disponibilite' => 'en_ligne']);
+
+    // Le client propose son propre prix a la creation (marchandage des le depart).
+    $r = $client->post('/api/client/orders_create.php', [
+        'type_livraison_id' => 1, 'adresse_depart' => 'M1', 'lat_depart' => 7.69, 'lng_depart' => -5.03,
+        'adresse_arrivee' => 'M2', 'lat_arrivee' => 7.70, 'lng_arrivee' => -5.04, 'mode_paiement' => 'especes',
+        'prix_propose' => 1200,
+    ]);
+    t_eq(201, $r['code'], 'commande avec prix propose par le client');
+    t_eq(1200.0, (float) ($r['body']['data']['montant_total'] ?? 0), 'le prix propose par le client est retenu');
+
+    $r = $client->post('/api/client/orders_create.php', [
+        'type_livraison_id' => 1, 'adresse_depart' => 'M1', 'lat_depart' => 7.69, 'lng_depart' => -5.03,
+        'adresse_arrivee' => 'M2', 'lat_arrivee' => 7.70, 'lng_arrivee' => -5.04, 'mode_paiement' => 'especes',
+        'prix_propose' => 1,
+    ]);
+    t_eq(422, $r['code'], 'un prix propose trop bas (loin de l\'estimation) est rejete');
+
+    // -- Marchandage : deroule complet (proposition -> contre-offre -> accord) --
+    $r = $client->post('/api/client/orders_create.php', [
+        'type_livraison_id' => 1, 'adresse_depart' => 'N1', 'lat_depart' => 7.69, 'lng_depart' => -5.03,
+        'adresse_arrivee' => 'N2', 'lat_arrivee' => 7.70, 'lng_arrivee' => -5.04, 'mode_paiement' => 'especes',
+    ]);
+    $refDeroule = $r['body']['data']['reference'] ?? '';
+    $cmdDeroule = $r['body']['data']['commande_id'] ?? 0;
+    $estimDeroule = (float) ($r['body']['data']['montant_total'] ?? 0);
+    t_ok($cmdDeroule > 0, 'commande creee pour le deroule de marchandage');
+
+    $r = $livreur2->post('/api/livreur/negociation.php', ['commande_id' => $cmdDeroule, 'decision' => 'proposer', 'montant' => $estimDeroule - 200]);
+    t_eq(200, $r['code'], 'le livreur propose un prix plus bas');
+
+    $r = $client->get('/api/client/negotiations_list.php?reference=' . urlencode($refDeroule));
+    t_eq(200, $r['code'], 'le client recupere les negociations de sa commande');
+    $negos = $r['body']['data']['negociations'] ?? [];
+    t_eq(1, count($negos), 'une negociation en attente pour cette commande');
+    t_eq('livreur', $negos[0]['propose_par'] ?? null, 'la proposition vient du livreur');
+
+    // Le client contre-propose un prix intermediaire.
+    $r = $client->post('/api/client/negociation.php', [
+        'commande_id' => $cmdDeroule, 'livreur_id' => $livreur2Id, 'decision' => 'proposer', 'montant' => $estimDeroule - 100,
+    ]);
+    t_eq(200, $r['code'], 'le client contre-propose');
+
+    $r = $livreur2->get('/api/livreur/negotiations_list.php');
+    $mesNegos = array_values(array_filter($r['body']['data']['negociations'] ?? [], fn($n) => (int) $n['commande_id'] === $cmdDeroule));
+    t_eq(1, count($mesNegos), 'le livreur voit la contre-proposition du client');
+    t_eq('client', $mesNegos[0]['propose_par'] ?? null, 'la derniere proposition vient du client');
+
+    // Le livreur accepte la contre-offre du client : la commande lui est attribuee.
+    $r = $livreur2->post('/api/livreur/negociation.php', ['commande_id' => $cmdDeroule, 'decision' => 'accepter']);
+    t_eq(200, $r['code'], 'le livreur accepte la contre-offre');
+
+    $r = $client->get('/api/client/orders_track.php?reference=' . urlencode($refDeroule));
+    t_eq('acceptee', $r['body']['data']['commande']['statut'] ?? null, 'commande attribuee au livreur negociateur');
+    t_eq($estimDeroule - 100, (float) ($r['body']['data']['commande']['montant_estime'] ?? -1), 'le montant final est celui de l\'accord');
+
+    // Le marchandage n'est pas disponible pour un paiement Mobile Money.
+    $r = $client->post('/api/client/orders_create.php', [
+        'type_livraison_id' => 1, 'adresse_depart' => 'P1', 'lat_depart' => 7.69, 'lng_depart' => -5.03,
+        'adresse_arrivee' => 'P2', 'lat_arrivee' => 7.70, 'lng_arrivee' => -5.04, 'mode_paiement' => 'orange_money',
+        'numero_paiement' => "07{$suffix}44",
+    ]);
+    $cmdMobileMoney = $r['body']['data']['commande_id'] ?? 0;
+    $r = $livreur2->post('/api/livreur/negociation.php', ['commande_id' => $cmdMobileMoney, 'decision' => 'proposer', 'montant' => 500]);
+    t_eq(422, $r['code'], 'marchandage refuse sur une commande Mobile Money');
+
     // -- Messagerie in-app (client <-> livreur) --------------------------------
     t_section('Messagerie in-app');
     // cmdDispatch vient d'etre acceptee par le livreur : les deux sont participants.
